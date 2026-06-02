@@ -5,17 +5,17 @@ import { db } from '@/lib/db'
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'phone',
+      name: 'email',
       credentials: {
-        phone: { label: 'Téléphone', type: 'tel' },
+        email: { label: 'Email', type: 'email' },
         password: { label: 'Mot de passe', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.phone || !credentials?.password) return null
+        if (!credentials?.email || !credentials?.password) return null
 
         try {
           const user = await db.user.findUnique({
-            where: { phone: credentials.phone },
+            where: { email: credentials.email },
           })
 
           if (!user || !user.password) return null

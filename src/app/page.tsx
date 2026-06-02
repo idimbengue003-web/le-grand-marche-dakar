@@ -20,12 +20,14 @@ import {
   Eye,
   PackageCheck,
   PackageX,
-  ToggleLeft,
-  ToggleRight,
   ChevronDown,
+  Navigation,
+  TrendingDown,
+  Trophy,
+  Mail,
 } from 'lucide-react'
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +48,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -80,6 +81,9 @@ interface Merchant {
   image: string
   rating: number
   location: string
+  address: string
+  latitude: number
+  longitude: number
   specialty: string
   banner: string
   _count: { products: number }
@@ -104,6 +108,29 @@ interface FavoriteItem {
   id: string
   productId: string
   product: Product
+}
+
+// ─── Distance Calculator ─────────────────────────────────────────────────────
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000 // Earth's radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+function formatDistance(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`
+  }
+  return `${(meters / 1000).toFixed(1)} km`
 }
 
 // ─── API Fetchers ────────────────────────────────────────────────────────────
@@ -139,6 +166,19 @@ async function fetchProducts(params: {
 
   const res = await fetch(`/api/products?${searchParams.toString()}`)
   if (!res.ok) throw new Error('Failed to fetch products')
+  return res.json()
+}
+
+async function fetchCompetitors(params: {
+  name: string
+  excludeMerchantId?: string
+}): Promise<Product[]> {
+  const searchParams = new URLSearchParams()
+  searchParams.set('name', params.name)
+  if (params.excludeMerchantId) searchParams.set('excludeMerchantId', params.excludeMerchantId)
+
+  const res = await fetch(`/api/products/compare?${searchParams.toString()}`)
+  if (!res.ok) throw new Error('Failed to fetch competitors')
   return res.json()
 }
 
@@ -215,7 +255,7 @@ function StarRating({ rating }: { rating: number }) {
 function AuthModal() {
   const { authModalOpen, setAuthModalOpen, authMode, setAuthMode } = useMarketStore()
   const { toast } = useToast()
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [selectedMerchantId, setSelectedMerchantId] = useState('')
@@ -228,7 +268,7 @@ function AuthModal() {
   })
 
   const resetForm = () => {
-    setPhone('')
+    setEmail('')
     setPassword('')
     setName('')
     setSelectedMerchantId('')
@@ -237,32 +277,29 @@ function AuthModal() {
   }
 
   const handleLogin = async () => {
-    if (!phone || !password) {
+    if (!email || !password) {
       setError('Veuillez remplir tous les champs')
       return
     }
     setLoading(true)
     setError('')
     try {
-      // Use custom login API first to validate credentials
       const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ email, password }),
       })
       const loginData = await loginRes.json()
       if (!loginRes.ok) {
-        setError(loginData.error || 'Numéro ou mot de passe incorrect')
+        setError(loginData.error || 'Email ou mot de passe incorrect')
         return
       }
-      // Then sign in via NextAuth to establish session
       const result = await signIn('credentials', {
-        phone,
+        email,
         password,
         redirect: false,
       })
       if (result?.error) {
-        // NextAuth signIn failed but credentials were valid - force a page reload
         window.location.reload()
         return
       }
@@ -277,8 +314,8 @@ function AuthModal() {
   }
 
   const handleRegister = async () => {
-    if (!phone || !password) {
-      setError('Téléphone et mot de passe requis')
+    if (!email || !password) {
+      setError('Email et mot de passe requis')
       return
     }
     if (password.length < 6) {
@@ -292,7 +329,7 @@ function AuthModal() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone,
+          email,
           password,
           name: name || undefined,
           merchantId: selectedMerchantId || undefined,
@@ -303,9 +340,8 @@ function AuthModal() {
         setError(data.error || 'Erreur lors de l\'inscription')
         return
       }
-      // Auto sign in after registration
       const result = await signIn('credentials', {
-        phone,
+        email,
         password,
         redirect: false,
       })
@@ -368,15 +404,18 @@ function AuthModal() {
             {authMode === 'login' ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="login-phone" className="text-[#8B4513]">Téléphone</Label>
-                  <Input
-                    id="login-phone"
-                    type="tel"
-                    placeholder="+33 6 00 00 00 01"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
-                  />
+                  <Label htmlFor="login-email" className="text-[#8B4513]">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="vendeur@marche.sn"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password" className="text-[#8B4513]">Mot de passe</Label>
@@ -411,15 +450,18 @@ function AuthModal() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reg-phone" className="text-[#8B4513]">Téléphone</Label>
-                  <Input
-                    id="reg-phone"
-                    type="tel"
-                    placeholder="+33 6 00 00 00 01"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
-                  />
+                  <Label htmlFor="reg-email" className="text-[#8B4513]">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
+                    <Input
+                      id="reg-email"
+                      type="email"
+                      placeholder="vendeur@marche.sn"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-password" className="text-[#8B4513]">Mot de passe</Label>
@@ -494,7 +536,7 @@ function AuthModal() {
 
             {authMode === 'login' && (
               <p className="text-center text-xs text-[#8B4513]/50">
-                Comptes test : +33600000001 / marchand1
+                Comptes test : beaumont@marche.sn / marchand1
               </p>
             )}
           </div>
@@ -583,6 +625,23 @@ function ProductDetailModal() {
   const { setAuthModalOpen } = useMarketStore()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  // Get user's geolocation
+  useEffect(() => {
+    if (selectedProduct && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        },
+        () => {
+          // If denied, use Dakar center as default
+          setUserLocation({ lat: 14.6937, lng: -17.4441 })
+        },
+        { timeout: 5000 }
+      )
+    }
+  }, [selectedProduct])
 
   const { data: favorites = [] } = useQuery({
     queryKey: ['favorites'],
@@ -607,11 +666,49 @@ function ProductDetailModal() {
     },
   })
 
+  // Fetch competitor prices
+  const { data: competitors = [] } = useQuery({
+    queryKey: ['competitors', selectedProduct?.name, selectedProduct?.merchantId],
+    queryFn: () =>
+      fetchCompetitors({
+        name: selectedProduct!.name,
+        excludeMerchantId: selectedProduct!.merchantId,
+      }),
+    enabled: !!selectedProduct,
+  })
+
+  // Calculate distance to this merchant
+  const distance = selectedProduct && userLocation
+    ? haversineDistance(userLocation.lat, userLocation.lng, selectedProduct.merchant.latitude, selectedProduct.merchant.longitude)
+    : null
+
+  // All offers (current + competitors), sorted by price
+  const allOffers = selectedProduct
+    ? [
+        {
+          id: selectedProduct.id,
+          price: selectedProduct.price,
+          merchant: selectedProduct.merchant,
+          inStock: selectedProduct.inStock,
+          isCurrent: true,
+        },
+        ...competitors.map((c) => ({
+          id: c.id,
+          price: c.price,
+          merchant: c.merchant,
+          inStock: c.inStock,
+          isCurrent: false,
+        })),
+      ].sort((a, b) => a.price - b.price)
+    : []
+
+  const lowestPrice = allOffers.length > 0 ? allOffers[0].price : selectedProduct?.price
+
   if (!selectedProduct) return null
 
   return (
     <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-      <DialogContent className="sm:max-w-lg bg-[#FFF8DC] border-[#DAA520]/30">
+      <DialogContent className="sm:max-w-lg bg-[#FFF8DC] border-[#DAA520]/30 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center gap-3">
             <span className="text-4xl">{selectedProduct.image}</span>
@@ -630,6 +727,24 @@ function ProductDetailModal() {
           <p className="text-[#8B4513]/80 text-sm leading-relaxed">
             {selectedProduct.description}
           </p>
+
+          {/* DISTANCE - Most important info */}
+          {distance !== null && (
+            <div className="flex items-center gap-2 bg-[#FAEBD7]/80 rounded-lg px-4 py-3 border border-[#DAA520]/20">
+              <Navigation className="size-5 text-[#8B0000] shrink-0" />
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#8B0000]">
+                    {formatDistance(distance)}
+                  </span>
+                  <span className="text-xs text-[#8B4513]/50">de vous</span>
+                </div>
+                <p className="text-xs text-[#8B4513]/60 mt-0.5">
+                  {selectedProduct.merchant.address || selectedProduct.merchant.location}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Price */}
           <div className="flex items-baseline gap-2">
@@ -684,6 +799,76 @@ function ProductDetailModal() {
               </div>
             )}
           </div>
+
+          {/* COMPETITOR PRICES - Show competition */}
+          {allOffers.length > 1 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#3D1F1A]">
+                <TrendingDown className="size-4 text-[#8B0000]" />
+                Comparaison des prix ({allOffers.length} vendeurs)
+              </div>
+              <div className="space-y-1.5">
+                {allOffers.map((offer) => {
+                  const offerDistance = userLocation
+                    ? haversineDistance(userLocation.lat, userLocation.lng, offer.merchant.latitude, offer.merchant.longitude)
+                    : null
+                  const isLowest = offer.price === lowestPrice
+
+                  return (
+                    <div
+                      key={offer.id}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 border transition-colors ${
+                        offer.isCurrent
+                          ? 'bg-[#8B0000]/5 border-[#8B0000]/20'
+                          : 'bg-white/50 border-[#DAA520]/15 hover:bg-[#FAEBD7]/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg shrink-0">{offer.merchant.image}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-sm font-medium truncate ${offer.isCurrent ? 'text-[#8B0000]' : 'text-[#3D1F1A]'}`}>
+                              {offer.merchant.name}
+                            </span>
+                            {offer.isCurrent && (
+                              <Badge className="text-[10px] px-1.5 py-0 bg-[#8B0000]/10 text-[#8B0000] border-0">
+                                Ce vendeur
+                              </Badge>
+                            )}
+                          </div>
+                          {offerDistance !== null && (
+                            <div className="flex items-center gap-1 text-xs text-[#8B4513]/50 mt-0.5">
+                              <MapPin className="size-3" />
+                              {formatDistance(offerDistance)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isLowest && (
+                          <Trophy className="size-4 text-[#DAA520]" />
+                        )}
+                        <div className="text-right">
+                          <span className={`font-[family-name:var(--font-playfair)] text-base font-bold ${isLowest ? 'text-green-700' : 'text-[#8B0000]'}`}>
+                            {offer.price.toFixed(2)} €
+                          </span>
+                          <span className="text-[10px] text-[#8B4513]/50 block">
+                            /{selectedProduct.unit}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {lowestPrice < selectedProduct.price && (
+                <p className="text-xs text-green-700 font-medium flex items-center gap-1">
+                  <TrendingDown className="size-3" />
+                  Meilleur prix : {lowestPrice.toFixed(2)} € — économisez {(selectedProduct.price - lowestPrice).toFixed(2)} €
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Favorite button */}
           <Button
@@ -968,17 +1153,6 @@ function HeroSection({
 }) {
   return (
     <header className="relative overflow-hidden bg-gradient-to-b from-[#2C1810] via-[#3D1F1A] to-[#FFF8DC]">
-      {/* Subtle decorative background */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-4 left-8 text-4xl text-[#FFD700]">❋</div>
-        <div className="absolute top-12 right-12 text-3xl text-[#FFD700]">✦</div>
-        <div className="absolute bottom-16 left-16 text-2xl text-[#FFD700]">❊</div>
-        <div className="absolute bottom-8 right-8 text-3xl text-[#FFD700]">☙</div>
-        <div className="absolute top-20 left-1/3 text-2xl text-[#FFD700]">⚜</div>
-        <div className="absolute top-8 left-1/2 text-4xl text-[#FFD700]">⚜</div>
-        <div className="absolute bottom-12 right-1/3 text-2xl text-[#FFD700]">❋</div>
-      </div>
-
       {/* Top bar: logo + user menu */}
       <div className="relative z-10 mx-auto max-w-5xl px-4 pt-4">
         <div className="flex items-center justify-between">
@@ -994,7 +1168,6 @@ function HeroSection({
 
       {/* Title area */}
       <div className="relative z-10 mx-auto max-w-5xl px-4 pt-4 pb-8 text-center">
-        {/* Crown ornament */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1004,7 +1177,6 @@ function HeroSection({
           <span className="text-5xl">👑</span>
         </motion.div>
 
-        {/* Title */}
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1014,7 +1186,6 @@ function HeroSection({
           Le Grand Marché Royal
         </motion.h1>
 
-        {/* Decorative line under title */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -1026,7 +1197,6 @@ function HeroSection({
           <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-[#DAA520] sm:w-24" />
         </motion.div>
 
-        {/* Subtitle */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1064,12 +1234,8 @@ function HeroSection({
         </motion.div>
       </div>
 
-      {/* Bottom ornamental border */}
-      <div className="relative h-3 bg-gradient-to-r from-[#8B0000] via-[#DAA520] to-[#8B0000]">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs text-[#FFF8DC]">✦ ✦ ✦</span>
-        </div>
-      </div>
+      {/* Bottom border */}
+      <div className="relative h-3 bg-gradient-to-r from-[#8B0000] via-[#DAA520] to-[#8B0000]" />
     </header>
   )
 }
@@ -1090,7 +1256,6 @@ function CategoryFilterBar({
       <div className="mx-auto max-w-7xl px-4 py-3">
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-1">
-            {/* "Toutes" button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => onSelectCategory(null)}
@@ -1135,13 +1300,28 @@ function CategoryFilterBar({
   )
 }
 
-// ─── Product Card (By Product view) ──────────────────────────────────────────
+// ─── Product Card ────────────────────────────────────────────────────────────
 
 function ProductCard({ product }: { product: Product }) {
   const { data: session } = useSession()
   const { setAuthModalOpen, setSelectedProduct } = useMarketStore()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setUserLocation({ lat: 14.6937, lng: -17.4441 }),
+        { timeout: 5000 }
+      )
+    }
+  }, [])
+
+  const distance = userLocation
+    ? haversineDistance(userLocation.lat, userLocation.lng, product.merchant.latitude, product.merchant.longitude)
+    : null
 
   const { data: favorites = [] } = useQuery({
     queryKey: ['favorites'],
@@ -1183,7 +1363,10 @@ function ProductCard({ product }: { product: Product }) {
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="group relative overflow-hidden border-[#DAA520]/20 bg-[#FFF8DC]/50 hover:border-[#DAA520]/50 hover:shadow-xl hover:shadow-[#DAA520]/10 transition-all duration-300">
+      <Card
+        className="group relative overflow-hidden border-[#DAA520]/20 bg-[#FFF8DC]/50 hover:border-[#DAA520]/50 hover:shadow-xl hover:shadow-[#DAA520]/10 transition-all duration-300 cursor-pointer"
+        onClick={() => setSelectedProduct(product)}
+      >
         {/* Favorite button - top left */}
         <button
           onClick={handleFavoriteClick}
@@ -1238,7 +1421,7 @@ function ProductCard({ product }: { product: Product }) {
             <span className="text-xs text-[#8B4513]/50">/ {product.unit}</span>
           </div>
 
-          {/* Merchant & Category info */}
+          {/* Merchant, Category, Distance info */}
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             <Badge
               variant="outline"
@@ -1266,17 +1449,28 @@ function ProductCard({ product }: { product: Product }) {
             </Badge>
           </div>
 
-          {/* Stock + View button */}
+          {/* Distance + Stock + View button */}
           <div className="mt-3 flex items-center justify-between">
-            {!product.inStock ? (
-              <span className="text-xs text-red-600 font-medium">Rupture de stock</span>
-            ) : (
-              <span className="text-xs text-green-700/70">En stock</span>
-            )}
+            <div className="flex items-center gap-2">
+              {distance !== null && (
+                <span className="text-xs text-[#8B4513]/70 flex items-center gap-1">
+                  <MapPin className="size-3" />
+                  {formatDistance(distance)}
+                </span>
+              )}
+              {!product.inStock ? (
+                <span className="text-xs text-red-600 font-medium">Rupture</span>
+              ) : (
+                <span className="text-xs text-green-700/70">En stock</span>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedProduct(product)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedProduct(product)
+              }}
               className="gap-1 text-[#8B4513] hover:text-[#3D1F1A] hover:bg-[#FAEBD7] h-7 px-2 text-xs"
             >
               <Eye className="size-3" />
@@ -1298,7 +1492,22 @@ function MerchantCard({
   merchant: Merchant
   products: Product[]
 }) {
-  const { setSelectedCategoryId, setViewMode } = useMarketStore()
+  const { setSelectedProduct } = useMarketStore()
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setUserLocation({ lat: 14.6937, lng: -17.4441 }),
+        { timeout: 5000 }
+      )
+    }
+  }, [])
+
+  const distance = userLocation
+    ? haversineDistance(userLocation.lat, userLocation.lng, merchant.latitude, merchant.longitude)
+    : null
 
   return (
     <motion.div
@@ -1333,9 +1542,15 @@ function MerchantCard({
             </div>
           </div>
 
-          {/* Rating, Location, Specialty */}
+          {/* Rating, Distance, Specialty */}
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
             <StarRating rating={merchant.rating} />
+            {distance !== null && (
+              <div className="flex items-center gap-1 text-[#8B0000] font-semibold">
+                <Navigation className="size-3" />
+                {formatDistance(distance)}
+              </div>
+            )}
             <div className="flex items-center gap-1 text-[#8B4513]/70">
               <MapPin className="size-3" />
               {merchant.location}
@@ -1366,11 +1581,7 @@ function MerchantCard({
               <div
                 key={product.id}
                 className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-[#FAEBD7]/60 cursor-pointer"
-                onClick={() => {
-                  // Switch to product view and open detail
-                  const store = useMarketStore.getState()
-                  store.setSelectedProduct(product)
-                }}
+                onClick={() => setSelectedProduct(product)}
               >
                 <span className="text-lg shrink-0">{product.image}</span>
                 <div className="min-w-0 flex-1">
@@ -1405,20 +1616,6 @@ function MerchantCard({
               </div>
             ))}
           </div>
-
-          {/* View shop button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSelectedCategoryId(null)
-              setViewMode('product')
-            }}
-            className="w-full mt-3 border-[#DAA520]/30 text-[#8B4513] hover:bg-[#FAEBD7] hover:border-[#DAA520]/50 gap-1.5"
-          >
-            <Eye className="size-3.5" />
-            Voir l&apos;échoppe
-          </Button>
         </CardContent>
       </Card>
     </motion.div>
@@ -1579,7 +1776,6 @@ export default function HomePage() {
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-6">
           {isLoading ? (
-            // Loading skeleton
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="animate-pulse border-[#DAA520]/10 bg-[#FAEBD7]/30">
@@ -1602,7 +1798,6 @@ export default function HomePage() {
               ))}
             </div>
           ) : products.length === 0 ? (
-            // Empty state
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <span className="text-6xl mb-4">🏰</span>
               <h3 className="font-[family-name:var(--font-playfair)] text-xl font-semibold text-[#3D1F1A]">
@@ -1627,7 +1822,6 @@ export default function HomePage() {
               )}
             </div>
           ) : viewMode === 'product' ? (
-            // Product grid view
             <AnimatePresence mode="popLayout">
               <motion.div
                 layout
@@ -1639,7 +1833,6 @@ export default function HomePage() {
               </motion.div>
             </AnimatePresence>
           ) : (
-            // Merchant view
             <AnimatePresence mode="popLayout">
               <motion.div
                 layout
@@ -1676,23 +1869,6 @@ export default function HomePage() {
       <ProductDetailModal />
       <FavoritesPanel />
       <MerchantDashboard />
-
-      {/* Custom scrollbar styles */}
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #DAA52040;
-          border-radius: 9999px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #DAA52080;
-        }
-      `}</style>
     </div>
   )
 }

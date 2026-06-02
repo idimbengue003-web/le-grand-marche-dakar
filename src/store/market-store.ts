@@ -33,6 +33,9 @@ interface Product {
     image: string
     rating: number
     location: string
+    address: string
+    latitude: number
+    longitude: number
     specialty: string
     banner: string
     _count: { products: number }

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { hash } from 'bcryptjs'
 import { NextResponse } from 'next/server'
 
 const CATEGORIES = [
@@ -16,6 +17,7 @@ const CATEGORIES = [
   { name: 'Volailles', slug: 'volailles', icon: '🐔', description: 'Volailles fermières de la basse-cour royale', color: '#CD853F' },
 ]
 
+// Merchants with Dakar, Senegal coordinates
 const MERCHANTS = [
   {
     name: 'Maison de Beaumont',
@@ -23,7 +25,10 @@ const MERCHANTS = [
     description: 'Fournisseur officiel de la cour depuis 3 générations. Les viandes les plus tendres du royaume.',
     image: '🏰',
     rating: 4.9,
-    location: 'Allée des Seigneurs',
+    location: 'Almadies, Dakar',
+    address: '45 Rue des Almadies, Dakar',
+    latitude: 14.7167,
+    longitude: -17.5167,
     specialty: 'Viandes & Volailles',
     banner: '#8B0000',
   },
@@ -33,7 +38,10 @@ const MERCHANTS = [
     description: 'Poissons et fruits de mer pêchés chaque matin dans les eaux cristallines du lac royal.',
     image: '🐬',
     rating: 4.7,
-    location: 'Place de la Fontaine',
+    location: 'Soumbedioune, Dakar',
+    address: '12 Quai de Soumbedioune, Dakar',
+    latitude: 14.6850,
+    longitude: -17.4483,
     specialty: 'Poissons & Fruits de mer',
     banner: '#1E90FF',
   },
@@ -43,7 +51,10 @@ const MERCHANTS = [
     description: 'Fruits et légumes cultivés dans les jardins ensoleillés du domaine royal.',
     image: '☀️',
     rating: 4.8,
-    location: 'Ruelle des Jardins',
+    location: 'Plateau, Dakar',
+    address: '8 Avenue Lamine Gueye, Dakar',
+    latitude: 14.6720,
+    longitude: -17.4380,
     specialty: 'Fruits & Légumes',
     banner: '#FF6347',
   },
@@ -53,7 +64,10 @@ const MERCHANTS = [
     description: 'Épices rares rapportées par les caravanes de la Route de la Soie. Saveurs d\'ailleurs.',
     image: '🎪',
     rating: 4.6,
-    location: 'Caravansérail Royal',
+    location: 'Sandaga, Dakar',
+    address: 'Marché Sandaga, Dakar',
+    latitude: 14.6640,
+    longitude: -17.4320,
     specialty: 'Épices & Condiments',
     banner: '#FF8C00',
   },
@@ -63,7 +77,10 @@ const MERCHANTS = [
     description: 'Miel récolté par les moines de l\'abbaye depuis des siècles. Tradition et pureté.',
     image: '⛪',
     rating: 4.9,
-    location: 'Claire Voie de l\'Abbaye',
+    location: 'Médina, Dakar',
+    address: '22 Boulevard de la Médina, Dakar',
+    latitude: 14.6940,
+    longitude: -17.4530,
     specialty: 'Miel & Confitures',
     banner: '#DAA520',
   },
@@ -73,7 +90,10 @@ const MERCHANTS = [
     description: 'Fromages affinés dans les caves du château. Le goût authentique de notre terroir.',
     image: '🏔️',
     rating: 4.8,
-    location: 'Cave des Maîtres',
+    location: 'Fann, Dakar',
+    address: '30 Rue Carnot, Dakar',
+    latitude: 14.6880,
+    longitude: -17.4640,
     specialty: 'Fromages & Produits laitiers',
     banner: '#FFD700',
   },
@@ -83,7 +103,10 @@ const MERCHANTS = [
     description: 'Le pain du roi, cuit dans les fours séculaires. Pâtisseries dignes des banquets.',
     image: '👑',
     rating: 4.7,
-    location: 'Grand Boulevard',
+    location: 'Point E, Dakar',
+    address: '15 Rue de Point E, Dakar',
+    latitude: 14.7060,
+    longitude: -17.4650,
     specialty: 'Pains & Pâtisseries',
     banner: '#D2691E',
   },
@@ -93,7 +116,10 @@ const MERCHANTS = [
     description: 'Vins fins sélectionnés parmi les meilleurs crus du royaume. Dégustation royale.',
     image: '🍷',
     rating: 4.9,
-    location: 'Venelle des Vignerons',
+    location: 'Mermoz, Dakar',
+    address: '7 Rue Mermoz, Dakar',
+    latitude: 14.6990,
+    longitude: -17.4730,
     specialty: 'Vins & Spiritueux',
     banner: '#722F37',
   },
@@ -103,7 +129,10 @@ const MERCHANTS = [
     description: 'Herbes médicinales et aromatiques choisies par la reine elle-même. Sagesse ancestrale.',
     image: '👸',
     rating: 4.5,
-    location: 'Cour des Plantes',
+    location: 'Grand Yoff, Dakar',
+    address: '50 Avenue Cheikh Anta Diop, Dakar',
+    latitude: 14.7200,
+    longitude: -17.4750,
     specialty: 'Herbes & Remèdes',
     banner: '#3CB371',
   },
@@ -113,7 +142,10 @@ const MERCHANTS = [
     description: 'Agrumes rares cultivés dans les serres chauffées du prince. Fraîcheur garantie.',
     image: '🍊',
     rating: 4.6,
-    location: 'Serre des Orangers',
+    location: 'Ouakam, Dakar',
+    address: '3 Route de Ouakam, Dakar',
+    latitude: 14.7270,
+    longitude: -17.4870,
     specialty: 'Citrons & Agrumes',
     banner: '#FFD700',
   },
@@ -210,36 +242,44 @@ const PRODUCTS: ProductSeed[] = [
   { name: 'Citrons de Menton', description: 'Citrons de Menton IGP, doux et parfumés', price: 6.90, unit: 'kg', image: '🍋', inStock: true, featured: true, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
   { name: 'Oranges Sanguines', description: 'Oranges sanguines de Sicile, juteuses et colorées', price: 5.50, unit: 'kg', image: '🍊', inStock: true, featured: true, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
   { name: 'Pamplemousse Rose', description: 'Pamplemousse rose de Floride, sucré et amer', price: 3.90, unit: 'kg', image: '🍇', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
-  { name: 'Cédrat Confît', description: 'Cédrat confît de Corse, délice des pâtissiers', price: 14.90, unit: 'boîte', image: '🍈', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
+  { name: 'Cédrat Confit', description: 'Cédrat confit de Corse, délice des pâtissiers', price: 14.90, unit: 'boîte', image: '🍈', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
 
-  // === Cross-merchant products (same category, different prices) ===
+  // === Cross-merchant products (same category, different prices - COMPETITION) ===
   // Viandes at other merchants
   { name: 'Bœuf Angus Premium', description: 'Viande bovine de qualité supérieure, maturée 21 jours', price: 31.50, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'jardins-soleil' },
+  { name: 'Bœuf Angus Premium', description: 'Bœuf Angus maturé 30 jours, sélection spéciale', price: 36.50, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boulangerie-royal' },
   { name: 'Saucisson Sec', description: 'Saucisson sec artisanal aux noisettes', price: 9.90, unit: 'pièce', image: '🌭', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boulangerie-royal' },
 
-  // Poissons at Orangerie
+  // Poissons at other merchants
   { name: 'Truite Fumée', description: 'Truite fumée au bois de hêtre, tranchée finement', price: 16.90, unit: '200g', image: '🐟', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'cave-chateau' },
+  { name: 'Saumon Sauvage d\'Alaska', description: 'Saumon sauvage entier, fraîcheur du jour', price: 35.50, unit: 'kg', image: '🐠', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'rucher-moine' },
 
-  // Fruits at Rucher
+  // Fruits at other merchants
   { name: 'Framboises Fraîches', description: 'Framboises charnues du verger de l\'abbaye', price: 7.50, unit: 'barquette', image: '🫐', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'rucher-moine' },
+  { name: 'Fraises Gariguette', description: 'Fraises Gariguette bio, cultivées au soleil', price: 9.50, unit: 'barquette', image: '🍓', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'epices-orient' },
+  { name: 'Cerises Burlat', description: 'Cerises Burlat première qualité, extra charnues', price: 11.50, unit: 'kg', image: '🍒', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'orangerie-prince' },
 
   // Miel from other merchants
   { name: 'Miel de Montagne', description: 'Miel de montagne toutes fleurs, récolté à 1500m', price: 16.90, unit: 'pot 250g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'jardins-soleil' },
+  { name: 'Miel de Lavande', description: 'Miel de lavande artisanal, doux et floral', price: 15.50, unit: 'pot 250g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'herboristerie-reine' },
 
-  // Fromage at Cave
+  // Fromage at other merchants
   { name: 'Brie aux Truffes', description: 'Brie affiné aux truffes noires du Périgord', price: 35.90, unit: 'pièce', image: '🧀', inStock: true, featured: true, categorySlug: 'fromages', merchantSlug: 'cave-chateau' },
+  { name: 'Comté 24 Mois', description: 'Comté extra 24 mois, affinage exceptionnel', price: 22.50, unit: 'kg', image: '🧀', inStock: true, featured: false, categorySlug: 'fromages', merchantSlug: 'maison-beaumont' },
 
-  // Herbes at Jardin
+  // Herbes at other merchants
   { name: 'Romarin Frais', description: 'Romarin aromatique du jardin du château', price: 2.90, unit: 'botte', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'jardins-soleil' },
+  { name: 'Herbes de Provence', description: 'Mélange d\'herbes de Provence séchées, parfumées', price: 4.90, unit: 'sachet 30g', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'jardins-soleil' },
 
-  // Citrons at Herboristerie
+  // Citrons at other merchants
   { name: 'Citrons de Menton', description: 'Citrons bio pour infusions et décoctions', price: 7.50, unit: 'kg', image: '🍋', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'herboristerie-reine' },
 
-  // Boulangerie at Maison de Beaumont
+  // Boulangerie at other merchants
   { name: 'Pain de Seigle', description: 'Pain de seigle au levain, tradition paysanne', price: 3.90, unit: 'pièce', image: '🍞', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'maison-beaumont' },
 
-  // Vins at Maison de Beaumont
+  // Vins at other merchants
   { name: 'Vin Rouge Maison', description: 'Cuvée spéciale de la maison, charpentée', price: 14.90, unit: 'bouteille', image: '🍷', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'maison-beaumont' },
+  { name: 'Champagne Brut Millésimé', description: 'Champagne brut prestige, bulles fines', price: 65.00, unit: 'bouteille', image: '🥂', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'fromagerie-comte' },
 ]
 
 export async function POST() {
@@ -257,7 +297,7 @@ export async function POST() {
       categoryMap[cat.slug] = created.id
     }
 
-    // Create merchants
+    // Create merchants with coordinates
     const merchantMap: Record<string, string> = {}
     for (const merch of MERCHANTS) {
       const created = await db.merchant.create({ data: merch })
@@ -287,23 +327,24 @@ export async function POST() {
       productCount++
     }
 
-    // Create test merchant accounts (pre-hashed passwords for compatibility)
+    // Create test merchant accounts with email
     const testAccounts = [
-      { phone: '+33600000001', hashedPassword: '$2b$12$pRrld8jbR2NZ0vsryS/fDu1zxpYzcTVnYqjnjFQbtKJDrKDnM7yQG', name: 'Maison de Beaumont', merchantSlug: 'maison-beaumont' },
-      { phone: '+33600000002', hashedPassword: '$2b$12$r6YyVZMmUF4iBUTAdWF92OFMRbOD0tFU7wfJb6lL6UgaNJn7Hp2Uq', name: 'Poissonnerie du Dauphin', merchantSlug: 'poissonnerie-dauphin' },
-      { phone: '+33600000003', hashedPassword: '$2b$12$MX9Kfay1VfCzTbdMh8oaS.J.Ob3Nt/eVGS5LauxA/4XjMQOj6A/AK', name: 'Jardins du Soleil', merchantSlug: 'jardins-soleil' },
-      { phone: '+33600000004', hashedPassword: '$2b$12$EeWp9C2W1zQBZu1fbOOaH.3StXStRs9zBXH6u4A9GIBN6qrLz7eui', name: 'Cave du Château', merchantSlug: 'cave-chateau' },
-      { phone: '+33600000005', hashedPassword: '$2b$12$RvVzg06AeB3MPvXikaRu8u5ZVlOy5oyFL/tCMdXTyb1Ff4gJnf4jm', name: 'Rucher du Moine', merchantSlug: 'rucher-moine' },
+      { email: 'beaumont@marche.sn', password: 'marchand1', name: 'Maison de Beaumont', merchantSlug: 'maison-beaumont' },
+      { email: 'dauphin@marche.sn', password: 'marchand2', name: 'Poissonnerie du Dauphin', merchantSlug: 'poissonnerie-dauphin' },
+      { email: 'soleil@marche.sn', password: 'marchand3', name: 'Jardins du Soleil', merchantSlug: 'jardins-soleil' },
+      { email: 'chateau@marche.sn', password: 'marchand4', name: 'Cave du Château', merchantSlug: 'cave-chateau' },
+      { email: 'moine@marche.sn', password: 'marchand5', name: 'Rucher du Moine', merchantSlug: 'rucher-moine' },
     ]
 
     for (const account of testAccounts) {
       const merchantId = merchantMap[account.merchantSlug]
       if (!merchantId) continue
 
+      const hashedPassword = await hash(account.password, 12)
       await db.user.create({
         data: {
-          phone: account.phone,
-          password: account.hashedPassword,
+          email: account.email,
+          password: hashedPassword,
           name: account.name,
           merchantId,
         },
