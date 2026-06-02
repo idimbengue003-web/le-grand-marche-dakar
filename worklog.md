@@ -106,3 +106,66 @@ Stage Summary:
 - No console errors or runtime errors
 - Responsive on both desktop and mobile
 - Visual design matches royal market theme
+
+---
+Task ID: 1-2-3
+Agent: main
+Task: Setup auth backend, schema, and API routes
+
+Work Log:
+- Updated prisma/schema.prisma with User, Account, Session, VerificationToken, Favorite models
+- Added User→Merchant relation via merchantId field
+- Added Favorite model with User-Product many-to-many relation
+- Added favorites field to Product model
+- Installed bcryptjs and @types/bcryptjs
+- Installed @next-auth/prisma-adapter
+- Ran bun run db:push - schema synced successfully
+- Created src/lib/auth.ts with NextAuth.js v4 config (Google + Credentials providers, JWT strategy, custom callbacks)
+- Created src/app/api/auth/[...nextauth]/route.ts for NextAuth handler
+- Created src/app/api/auth/register/route.ts for phone+password registration
+- Created src/app/api/auth/session/route.ts for session retrieval
+- Created src/app/api/favorites/route.ts with GET (list) and POST (toggle) endpoints
+- Created src/app/api/merchants/[id]/products/route.ts with GET (list) and PATCH (update) endpoints
+- Updated .env with NEXTAUTH_SECRET, NEXTAUTH_URL, GOOGLE_CLIENT_ID/SECRET placeholders
+- Updated seed API to create 5 test merchant accounts linked to merchants
+- Ran bun run lint - passes with no errors
+
+Stage Summary:
+- Full NextAuth.js v4 backend configured with JWT strategy and Prisma adapter
+- Credentials provider supports phone + password login
+- Google provider configured (placeholder, ready for env vars)
+- Registration API with validation and bcrypt password hashing
+- Session API for checking auth state
+- Favorites API with toggle (add/remove) functionality
+- Merchant Products API for vendor dashboard (list + update)
+- 5 test merchant accounts seeded: +33600000001-05 with passwords marchand1-5
+- Database schema now has 7 models: User, Account, Session, VerificationToken, Category, Merchant, Product, Favorite
+
+---
+Task ID: 4-5
+Agent: full-stack-developer
+Task: Build complete frontend with auth, merchant dashboard, favorites, functional buttons
+
+Work Log:
+- Updated Zustand store (src/store/market-store.ts) with new state: authModalOpen, authMode, selectedProduct, merchantDashboardOpen, favoritesOpen + setters
+- Updated Providers (src/components/providers.tsx) to wrap children with SessionProvider from next-auth/react
+- Completely rewrote page.tsx with the following new components:
+  - AuthModal: Login/Register dialog with phone+password, Google sign-in, merchant select on registration, test account hint
+  - UserMenu: Login button when unauthenticated, dropdown menu when logged in (Favorites, My Shop, Logout)
+  - ProductDetailModal: Full product details dialog with emoji, description, price, merchant/category badges, stock status, favorite toggle
+  - FavoritesPanel: Dialog listing user's favorited products with remove button, empty state message
+  - MerchantDashboard: Dialog for merchants to manage products (toggle stock/featured), requires merchantId
+  - Updated ProductCard: Added Heart favorite button (top-left), "Voir" view button, stock status text
+  - Updated MerchantCard: Added "Voir l'échoppe" button, clickable product rows open detail modal
+  - Updated HeroSection: Added UserMenu in top bar, removed castle emoji, kept ornamental border
+- All buttons are functional (favorites, view, login, register, merchant dashboard, stock/featured toggles)
+- Clean, minimal design - no decorative-only buttons, no cluttered elements
+- ESLint passes with no errors
+- No runtime errors in dev.log
+
+Stage Summary:
+- Complete frontend with vendor authentication via phone+password or Google
+- Favorites system: toggle on product cards, view in favorites panel, remove from list
+- Merchant dashboard: view products, toggle stock status, toggle featured status
+- All buttons functional - no decorative-only elements
+- Clean royal theme preserved (gold/burgundy/cream)

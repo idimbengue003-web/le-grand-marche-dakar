@@ -287,12 +287,36 @@ export async function POST() {
       productCount++
     }
 
+    // Create test merchant accounts (pre-hashed passwords for compatibility)
+    const testAccounts = [
+      { phone: '+33600000001', hashedPassword: '$2b$12$pRrld8jbR2NZ0vsryS/fDu1zxpYzcTVnYqjnjFQbtKJDrKDnM7yQG', name: 'Maison de Beaumont', merchantSlug: 'maison-beaumont' },
+      { phone: '+33600000002', hashedPassword: '$2b$12$r6YyVZMmUF4iBUTAdWF92OFMRbOD0tFU7wfJb6lL6UgaNJn7Hp2Uq', name: 'Poissonnerie du Dauphin', merchantSlug: 'poissonnerie-dauphin' },
+      { phone: '+33600000003', hashedPassword: '$2b$12$MX9Kfay1VfCzTbdMh8oaS.J.Ob3Nt/eVGS5LauxA/4XjMQOj6A/AK', name: 'Jardins du Soleil', merchantSlug: 'jardins-soleil' },
+      { phone: '+33600000004', hashedPassword: '$2b$12$EeWp9C2W1zQBZu1fbOOaH.3StXStRs9zBXH6u4A9GIBN6qrLz7eui', name: 'Cave du Château', merchantSlug: 'cave-chateau' },
+      { phone: '+33600000005', hashedPassword: '$2b$12$RvVzg06AeB3MPvXikaRu8u5ZVlOy5oyFL/tCMdXTyb1Ff4gJnf4jm', name: 'Rucher du Moine', merchantSlug: 'rucher-moine' },
+    ]
+
+    for (const account of testAccounts) {
+      const merchantId = merchantMap[account.merchantSlug]
+      if (!merchantId) continue
+
+      await db.user.create({
+        data: {
+          phone: account.phone,
+          password: account.hashedPassword,
+          name: account.name,
+          merchantId,
+        },
+      })
+    }
+
     return NextResponse.json({
       message: 'Royal Market seeded successfully!',
       count: {
         categories: CATEGORIES.length,
         merchants: MERCHANTS.length,
         products: productCount,
+        users: testAccounts.length,
       },
     })
   } catch (error) {
