@@ -67,6 +67,10 @@ interface MarketState {
   // Premium plans dialog
   premiumPlansOpen: boolean
 
+  // Buyer features
+  buyerSettingsOpen: boolean
+  authRole: 'acheteur' | 'vendeur'
+
   // Navigation - page views
   pageView: PageView
   viewingMerchantId: string | null
@@ -84,6 +88,8 @@ interface MarketState {
   setMerchantDashboardOpen: (open: boolean) => void
   setFavoritesOpen: (open: boolean) => void
   setPremiumPlansOpen: (open: boolean) => void
+  setBuyerSettingsOpen: (open: boolean) => void
+  setAuthRole: (role: 'acheteur' | 'vendeur') => void
   setPageView: (view: PageView) => void
   setViewingMerchantId: (id: string | null) => void
   navigateToShop: (merchantId: string) => void
@@ -104,6 +110,9 @@ export const useMarketStore = create<MarketState>((set) => ({
   favoritesOpen: false,
   premiumPlansOpen: false,
 
+  buyerSettingsOpen: false,
+  authRole: 'acheteur',
+
   pageView: 'market',
   viewingMerchantId: null,
 
@@ -119,6 +128,8 @@ export const useMarketStore = create<MarketState>((set) => ({
   setMerchantDashboardOpen: (open) => set({ merchantDashboardOpen: open }),
   setFavoritesOpen: (open) => set({ favoritesOpen: open }),
   setPremiumPlansOpen: (open) => set({ premiumPlansOpen: open }),
+  setBuyerSettingsOpen: (open) => set({ buyerSettingsOpen: open }),
+  setAuthRole: (role) => set({ authRole: role }),
   setPageView: (view) => set({ pageView: view }),
   setViewingMerchantId: (id) => set({ viewingMerchantId: id }),
   navigateToShop: (merchantId) => set({ pageView: 'shop', viewingMerchantId: merchantId, selectedProduct: null }),

@@ -3,7 +3,7 @@ import { hash } from 'bcryptjs'
 import { NextResponse } from 'next/server'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// AUCHAN-STYLE COMPREHENSIVE CATEGORIES
+// COMPREHENSIVE CATEGORIES (Auchan-style variety)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CATEGORIES = [
@@ -47,38 +47,11 @@ const CATEGORIES = [
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MERCHANTS (Including Auchan + existing + new)
+// MARCHÉS & ÉCHOPPES SÉNÉGALAIS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const MERCHANTS = [
-  // AUCHAN - Main hypermarket
-  {
-    name: 'Auchan Dakar',
-    slug: 'auchan-dakar',
-    description: 'Hypermarché Auchan — Tous vos produits du quotidien sous un même toit. Fraîcheur garantie, prix compétitifs.',
-    image: '🔴',
-    rating: 4.8,
-    location: 'Plateau, Dakar',
-    address: 'Place de l\'Indépendance, Dakar',
-    latitude: 14.6720,
-    longitude: -17.4380,
-    specialty: 'Hypermarket — Tous rayons',
-    banner: '#E30613',
-  },
-  {
-    name: 'Auchan almadies',
-    slug: 'auchan-almadies',
-    description: 'Auchan Almadies — Votre supermarché de proximité, frais et accessible.',
-    image: '🔴',
-    rating: 4.7,
-    location: 'Almadies, Dakar',
-    address: '45 Route des Almadies, Dakar',
-    latitude: 14.7167,
-    longitude: -17.5167,
-    specialty: 'Supermarché — Proximité',
-    banner: '#E30613',
-  },
-  // EXISTING MERCHANTS
+  // MARCHÉS SÉNÉGALAIS
   {
     name: 'Boucherie Al Baraka',
     slug: 'boucherie-albaraka',
@@ -251,8 +224,8 @@ interface ProductSeed {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMPREHENSIVE AUCHAN-STYLE PRODUCT CATALOG (200+ products)
-// All prices in FCFA
+// COMPREHENSIVE PRODUCT CATALOG (200+ products — Auchan-style variety)
+// All prices in FCFA — Sold by Senegalese merchants only
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const PRODUCTS: ProductSeed[] = [
@@ -645,6 +618,77 @@ const PRODUCTS: ProductSeed[] = [
   { name: 'Pain Complet', description: 'Pain complet au levain', price: 350, unit: 'pièce', image: '🍞', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'auchan-dakar' },
 ]
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// REMAP: Redirect Auchan merchant slugs to appropriate Senegalese merchants
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const AUCHAN_REMAP: Record<string, Record<string, string>> = {
+  'auchan-dakar': {
+    viandes: 'citydia',
+    volailles: 'citydia',
+    poissons: 'citydia',
+    fruits: 'citydia',
+    legumes: 'citydia',
+    'produits-laitiers': 'fromagerie-ndar',
+    fromages: 'fromagerie-ndar',
+    boulangerie: 'boulangerie-touba',
+    charcuterie: 'boucherie-albaraka',
+    epices: 'epices-teranga',
+    'riz-cereales': 'citydia',
+    huiles: 'epices-teranga',
+    conserves: 'citydia',
+    sauces: 'epices-teranga',
+    sucres: 'rucher-saloum',
+    'cafe-the': 'cave-dakar',
+    boissons: 'cave-dakar',
+    eau: 'cave-dakar',
+    'miel-confitures': 'rucher-saloum',
+    herbes: 'herboristerie-khady',
+    'citrons-agrumes': 'orangerie-casamance',
+    surgeles: 'citydia',
+    'hygiene-beaute': 'citydia',
+    'produits-menagers': 'promod',
+    bebe: 'citydia',
+    animaux: 'promod',
+    snacks: 'citydia',
+  },
+  'auchan-almadies': {
+    viandes: 'promod',
+    volailles: 'promod',
+    poissons: 'promod',
+    fruits: 'orangerie-casamance',
+    legumes: 'promod',
+    'produits-laitiers': 'fromagerie-ndar',
+    fromages: 'fromagerie-ndar',
+    boulangerie: 'boulangerie-touba',
+    charcuterie: 'boucherie-albaraka',
+    epices: 'epices-teranga',
+    'riz-cereales': 'promod',
+    huiles: 'epices-teranga',
+    conserves: 'promod',
+    sauces: 'epices-teranga',
+    sucres: 'rucher-saloum',
+    'cafe-the': 'cave-dakar',
+    boissons: 'cave-dakar',
+    eau: 'cave-dakar',
+    'miel-confitures': 'rucher-saloum',
+    herbes: 'herboristerie-khady',
+    'citrons-agrumes': 'orangerie-casamance',
+    surgeles: 'promod',
+    'hygiene-beaute': 'promod',
+    'produits-menagers': 'promod',
+    bebe: 'promod',
+    animaux: 'promod',
+    snacks: 'promod',
+  },
+}
+
+function remapMerchantSlug(merchantSlug: string, categorySlug: string): string {
+  const remap = AUCHAN_REMAP[merchantSlug]
+  if (!remap) return merchantSlug
+  return remap[categorySlug] || 'citydia'
+}
+
 export async function POST(request: Request) {
   try {
     // Support force re-seed via ?force=true
@@ -658,6 +702,10 @@ export async function POST(request: Request) {
 
     // If force, delete all existing data in correct order
     if (force) {
+      await db.notification.deleteMany()
+      await db.orderItem.deleteMany()
+      await db.order.deleteMany()
+      await db.address.deleteMany()
       await db.favorite.deleteMany()
       await db.subscription.deleteMany()
       await db.account.deleteMany()
@@ -682,11 +730,12 @@ export async function POST(request: Request) {
       merchantMap[merch.slug] = created.id
     }
 
-    // Create products
+    // Create products (remap Auchan slugs to Senegalese merchants)
     let productCount = 0
     for (const prod of PRODUCTS) {
       const categoryId = categoryMap[prod.categorySlug]
-      const merchantId = merchantMap[prod.merchantSlug]
+      const effectiveMerchantSlug = remapMerchantSlug(prod.merchantSlug, prod.categorySlug)
+      const merchantId = merchantMap[effectiveMerchantSlug]
       if (!categoryId || !merchantId) continue
 
       await db.product.create({
@@ -707,15 +756,13 @@ export async function POST(request: Request) {
 
     // Create test vendor accounts with subscriptions
     const testAccounts = [
-      { email: 'albaraka@marche.sn', password: 'vendeur1', name: 'Boucherie Al Baraka', merchantSlug: 'boucherie-albaraka', plan: 'premium_plus' },
-      { email: 'ndiagane@marche.sn', password: 'vendeur2', name: 'Poissonnerie Ndiagane', merchantSlug: 'poissonnerie-ndiagane', plan: 'premium' },
-      { email: 'sahel@marche.sn', password: 'vendeur3', name: 'Jardin du Sahel', merchantSlug: 'jardin-sahel', plan: 'gratuit' },
-      { email: 'teranga@marche.sn', password: 'vendeur4', name: 'Épices Teranga', merchantSlug: 'epices-teranga', plan: 'premium' },
-      { email: 'saloum@marche.sn', password: 'vendeur5', name: 'Rucher du Saloum', merchantSlug: 'rucher-saloum', plan: 'gratuit' },
-      { email: 'auchan@marche.sn', password: 'auchan1', name: 'Auchan Dakar', merchantSlug: 'auchan-dakar', plan: 'premium_plus' },
-      { email: 'auchan.almadies@marche.sn', password: 'auchan2', name: 'Auchan Almadies', merchantSlug: 'auchan-almadies', plan: 'premium_plus' },
-      { email: 'citydia@marche.sn', password: 'citydia1', name: 'Citydia', merchantSlug: 'citydia', plan: 'premium' },
-      { email: 'promod@marche.sn', password: 'promod1', name: 'Promod', merchantSlug: 'promod', plan: 'premium' },
+      { email: 'albaraka@marche.sn', password: 'vendeur1', name: 'Boucherie Al Baraka', merchantSlug: 'boucherie-albaraka', plan: 'premium_plus', role: 'vendeur' },
+      { email: 'ndiagane@marche.sn', password: 'vendeur2', name: 'Poissonnerie Ndiagane', merchantSlug: 'poissonnerie-ndiagane', plan: 'premium', role: 'vendeur' },
+      { email: 'sahel@marche.sn', password: 'vendeur3', name: 'Jardin du Sahel', merchantSlug: 'jardin-sahel', plan: 'gratuit', role: 'vendeur' },
+      { email: 'teranga@marche.sn', password: 'vendeur4', name: 'Épices Teranga', merchantSlug: 'epices-teranga', plan: 'premium', role: 'vendeur' },
+      { email: 'saloum@marche.sn', password: 'vendeur5', name: 'Rucher du Saloum', merchantSlug: 'rucher-saloum', plan: 'gratuit', role: 'vendeur' },
+      { email: 'citydia@marche.sn', password: 'citydia1', name: 'Citydia', merchantSlug: 'citydia', plan: 'premium_plus', role: 'vendeur' },
+      { email: 'promod@marche.sn', password: 'promod1', name: 'Promod', merchantSlug: 'promod', plan: 'premium', role: 'vendeur' },
     ]
 
     for (const account of testAccounts) {
@@ -729,6 +776,7 @@ export async function POST(request: Request) {
           password: hashedPassword,
           name: account.name,
           merchantId,
+          role: account.role,
         },
       })
 
@@ -741,6 +789,94 @@ export async function POST(request: Request) {
         },
       })
     }
+
+    // Create test buyer accounts
+    const buyerPassword = await hash('buyer1', 12)
+    const buyerUser = await db.user.create({
+      data: {
+        email: 'acheteur@marche.sn',
+        password: buyerPassword,
+        name: 'Amadou Diallo',
+        phone: '+221771234567',
+        role: 'acheteur',
+        image: '🧑',
+      },
+    })
+
+    // Create default address for buyer
+    await db.address.create({
+      data: {
+        userId: buyerUser.id,
+        label: 'Maison',
+        address: '45 Rue Carnot, Plateau',
+        city: 'Dakar',
+        phone: '+221771234567',
+        isDefault: true,
+        latitude: 14.6720,
+        longitude: -17.4380,
+      },
+    })
+
+    // Create second address for buyer
+    await db.address.create({
+      data: {
+        userId: buyerUser.id,
+        label: 'Bureau',
+        address: '12 Avenue Lamine Gueye, Plateau',
+        city: 'Dakar',
+        phone: '+221781234567',
+        isDefault: false,
+        latitude: 14.6700,
+        longitude: -17.4350,
+      },
+    })
+
+    // Create welcome notification for buyer
+    await db.notification.create({
+      data: {
+        userId: buyerUser.id,
+        title: 'Bienvenue au Marché Royal ! 👑',
+        message: 'Découvrez les meilleures offres de nos marchands. Ajoutez vos adresses de livraison et commencez vos achats.',
+        type: 'systeme',
+        read: false,
+      },
+    })
+
+    // Create a second buyer account
+    const buyer2Password = await hash('buyer2', 12)
+    const buyer2User = await db.user.create({
+      data: {
+        email: 'fatou@marche.sn',
+        password: buyer2Password,
+        name: 'Fatou Ndiaye',
+        phone: '+221787654321',
+        role: 'acheteur',
+        image: '👩',
+      },
+    })
+
+    await db.address.create({
+      data: {
+        userId: buyer2User.id,
+        label: 'Maison',
+        address: '8 Rue Fann, Fann Hock',
+        city: 'Dakar',
+        phone: '+221787654321',
+        isDefault: true,
+        latitude: 14.6850,
+        longitude: -17.4600,
+      },
+    })
+
+    await db.notification.create({
+      data: {
+        userId: buyer2User.id,
+        title: 'Bienvenue au Marché Royal ! 👑',
+        message: 'Explorez les trésors de notre marché. Comparez les prix et trouvez les meilleures offres près de chez vous.',
+        type: 'systeme',
+        read: false,
+      },
+    })
 
     return NextResponse.json({
       message: 'Marché Royal ensemencé avec succès ! 🏪',

@@ -38,6 +38,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email || undefined,
             merchantId: user.merchantId || undefined,
             plan: user.subscription?.plan || 'gratuit',
+            role: user.role || 'acheteur',
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -56,6 +57,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.merchantId = (user as any).merchantId ?? null
         token.plan = (user as any).plan ?? 'gratuit'
+        token.role = (user as any).role ?? 'acheteur'
       }
       return token
     },
@@ -64,6 +66,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).id = token.id || null
         ;(session.user as any).merchantId = token.merchantId || null
         ;(session.user as any).plan = token.plan || 'gratuit'
+        ;(session.user as any).role = token.role || 'acheteur'
       }
       return session
     },

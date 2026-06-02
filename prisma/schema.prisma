@@ -8,21 +8,25 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  phone         String?
-  password      String?
-  merchantId    String?   @unique
-  merchant      Merchant? @relation(fields: [merchantId], references: [id])
-  accounts      Account[]
-  sessions      Session[]
-  favorites     Favorite[]
-  subscription  Subscription?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String     @id @default(cuid())
+  name            String?
+  email           String     @unique
+  emailVerified   DateTime?
+  image           String?
+  phone           String?
+  password        String?
+  role            String     @default("acheteur") // "acheteur" or "vendeur"
+  merchantId      String?    @unique
+  merchant        Merchant?  @relation(fields: [merchantId], references: [id])
+  accounts        Account[]
+  sessions        Session[]
+  favorites       Favorite[]
+  subscription    Subscription?
+  addresses       Address[]
+  orders          Order[]
+  notifications   Notification[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
 
 model Account {
@@ -104,6 +108,7 @@ model Product {
   category    Category  @relation(fields: [categoryId], references: [id])
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
   favorites   Favorite[]
+  orderItems  OrderItem[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -130,4 +135,59 @@ model Subscription {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Delivery addresses for buyers
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String   // "Maison", "Bureau", etc.
+  address     String
+  city        String   @default("Dakar")
+  phone       String?
+  isDefault   Boolean  @default(false)
+  latitude    Float    @default(0)
+  longitude   Float    @default(0)
+  orders      Order[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Buyer orders
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        String      @default("en_attente") // "en_attente", "confirmee", "en_preparation", "livree", "annulee"
+  total         Float
+  addressId     String?
+  address       Address?    @relation(fields: [addressId], references: [id])
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// Order line items
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  price     Float
+  createdAt DateTime @default(now())
+}
+
+// Notifications for buyers
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info") // "info", "commande", "promo", "systeme"
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

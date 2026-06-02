@@ -33,6 +33,20 @@ import {
   Check,
   ShoppingCart,
   ArrowLeft,
+  Settings,
+  Phone,
+  MapPinPlus,
+  Clock,
+  Bell,
+  Shield,
+  Edit,
+  Save,
+  PlusCircle,
+  Home,
+  Building2,
+  Trash,
+  EyeOff,
+  Package,
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,7 +63,7 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -143,6 +157,12 @@ function formatDistance(meters: number): string {
 
 function formatPrice(price: number): string {
   return price.toLocaleString('fr-FR') + ' FCFA'
+}
+
+function getQuartier(location: string): string {
+  // Extract quartier name from "Quartier, Ville" format
+  const parts = location.split(',').map(s => s.trim())
+  return parts[0] || location
 }
 
 function getPlanBadge(plan: string) {
@@ -327,11 +347,12 @@ function StarRating({ rating }: { rating: number }) {
 // ─── Auth Modal ──────────────────────────────────────────────────────────────
 
 function AuthModal() {
-  const { authModalOpen, setAuthModalOpen, authMode, setAuthMode } = useMarketStore()
+  const { authModalOpen, setAuthModalOpen, authMode, setAuthMode, authRole, setAuthRole } = useMarketStore()
   const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [selectedMerchantId, setSelectedMerchantId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -345,9 +366,14 @@ function AuthModal() {
     setEmail('')
     setPassword('')
     setName('')
+    setPhone('')
     setSelectedMerchantId('')
     setError('')
     setLoading(false)
+  }
+
+  const isValidSenegalesePhone = (p: string) => {
+    return /^\+221\d{9}$/.test(p) || /^(77|78|76|75|70)\d{7}$/.test(p)
   }
 
   const handleLogin = async () => {
@@ -396,6 +422,14 @@ function AuthModal() {
       setError('Le mot de passe doit contenir au moins 6 caractères')
       return
     }
+    if (authRole === 'acheteur' && !name) {
+      setError('Le nom est requis pour les acheteurs')
+      return
+    }
+    if (authRole === 'acheteur' && phone && !isValidSenegalesePhone(phone)) {
+      setError('Format téléphone invalide. Utilisez +221 XX XXX XX XX ou 77/78/76/75/70 XXX XX XX')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -406,7 +440,9 @@ function AuthModal() {
           email,
           password,
           name: name || undefined,
-          merchantId: selectedMerchantId || undefined,
+          phone: phone || undefined,
+          role: authRole,
+          merchantId: authRole === 'vendeur' && selectedMerchantId ? selectedMerchantId : undefined,
         }),
       })
       const data = await res.json()
@@ -444,7 +480,7 @@ function AuthModal() {
             ⚜ Accès au Marché ⚜
           </DialogTitle>
           <DialogDescription className="text-center text-[#8B4513]/70">
-            Connectez-vous pour accéder à vos favoris et votre échoppe
+            Acheteurs et vendeurs, connectez-vous au Marché Royal
           </DialogDescription>
         </DialogHeader>
 
@@ -508,57 +544,144 @@ function AuthModal() {
               </>
             ) : (
               <>
+                {/* Role selector */}
                 <div className="space-y-2">
-                  <Label htmlFor="reg-name" className="text-[#8B4513]">Nom (optionnel)</Label>
-                  <Input
-                    id="reg-name"
-                    type="text"
-                    placeholder="Votre nom"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-email" className="text-[#8B4513]">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
-                    <Input
-                      id="reg-email"
-                      type="email"
-                      placeholder="vendeur@marche.sn"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 pl-9"
-                    />
+                  <Label className="text-[#8B4513]">Je suis...</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole('acheteur')}
+                      className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                        authRole === 'acheteur'
+                          ? 'border-[#8B0000] bg-[#8B0000]/10 text-[#8B0000] shadow-sm'
+                          : 'border-[#DAA520]/20 bg-white/50 text-[#8B4513]/60 hover:border-[#DAA520]/40'
+                      }`}
+                    >
+                      🛒 Acheteur
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole('vendeur')}
+                      className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                        authRole === 'vendeur'
+                          ? 'border-[#8B0000] bg-[#8B0000]/10 text-[#8B0000] shadow-sm'
+                          : 'border-[#DAA520]/20 bg-white/50 text-[#8B4513]/60 hover:border-[#DAA520]/40'
+                      }`}
+                    >
+                      🏪 Vendeur
+                    </button>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-password" className="text-[#8B4513]">Mot de passe</Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    placeholder="Minimum 6 caractères"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-merchant" className="text-[#8B4513]">Échoppe (optionnel)</Label>
-                  <Select value={selectedMerchantId} onValueChange={setSelectedMerchantId}>
-                    <SelectTrigger className="border-[#DAA520]/30 bg-white/70">
-                      <SelectValue placeholder="Sélectionnez votre échoppe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {merchants.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.image} {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
+                {authRole === 'acheteur' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-name" className="text-[#8B4513]">Nom *</Label>
+                      <Input
+                        id="reg-name"
+                        type="text"
+                        placeholder="Votre nom"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-email" className="text-[#8B4513]">Email *</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
+                        <Input
+                          id="reg-email"
+                          type="email"
+                          placeholder="acheteur@marche.sn"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 pl-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-phone" className="text-[#8B4513]">Téléphone</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
+                        <Input
+                          id="reg-phone"
+                          type="tel"
+                          placeholder="+221 77 123 45 67"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 pl-9"
+                        />
+                      </div>
+                      <p className="text-[10px] text-[#8B4513]/50">Format : +221 XX XXX XX XX</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-password" className="text-[#8B4513]">Mot de passe *</Label>
+                      <Input
+                        id="reg-password"
+                        type="password"
+                        placeholder="Minimum 6 caractères"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-name" className="text-[#8B4513]">Nom (optionnel)</Label>
+                      <Input
+                        id="reg-name"
+                        type="text"
+                        placeholder="Votre nom"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-email" className="text-[#8B4513]">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
+                        <Input
+                          id="reg-email"
+                          type="email"
+                          placeholder="vendeur@marche.sn"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 pl-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-password" className="text-[#8B4513]">Mot de passe</Label>
+                      <Input
+                        id="reg-password"
+                        type="password"
+                        placeholder="Minimum 6 caractères"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-merchant" className="text-[#8B4513]">Échoppe (optionnel)</Label>
+                      <Select value={selectedMerchantId} onValueChange={setSelectedMerchantId}>
+                        <SelectTrigger className="border-[#DAA520]/30 bg-white/70">
+                          <SelectValue placeholder="Sélectionnez votre échoppe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {merchants.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.image} {m.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
                 <Button
                   onClick={handleRegister}
                   disabled={loading}
@@ -570,9 +693,14 @@ function AuthModal() {
             )}
 
             {authMode === 'login' && (
-              <p className="text-center text-xs text-[#8B4513]/50">
-                Compte test : albaraka@marche.sn / vendeur1
-              </p>
+              <div className="space-y-1">
+                <p className="text-center text-xs text-[#8B4513]/50">
+                  Vendeur test : albaraka@marche.sn / vendeur1
+                </p>
+                <p className="text-center text-xs text-[#8B4513]/50">
+                  Acheteur test : acheteur@marche.sn / buyer1
+                </p>
+              </div>
             )}
           </div>
         </Tabs>
@@ -585,10 +713,12 @@ function AuthModal() {
 
 function UserMenu() {
   const { data: session } = useSession()
-  const { setAuthModalOpen, setFavoritesOpen, setMerchantDashboardOpen, setPremiumPlansOpen } = useMarketStore()
+  const { setAuthModalOpen, setFavoritesOpen, setMerchantDashboardOpen, setPremiumPlansOpen, setBuyerSettingsOpen } = useMarketStore()
   const { toast } = useToast()
   const merchantId = (session?.user as Record<string, unknown>)?.merchantId as string | undefined
   const plan = ((session?.user as Record<string, unknown>)?.plan as string) || 'gratuit'
+  const role = ((session?.user as Record<string, unknown>)?.role as string) || 'acheteur'
+  const isBuyer = role === 'acheteur'
 
   if (!session) {
     return (
@@ -613,6 +743,7 @@ function UserMenu() {
         >
           <User className="size-4" />
           <span className="max-w-[120px] truncate">{session.user.name || 'Utilisateur'}</span>
+          <span className="text-sm">{isBuyer ? '🛒' : '🏪'}</span>
           {(plan === 'premium' || plan === 'premium_plus') && (
             <span className="text-[#DAA520]">
               {plan === 'premium_plus' ? <Diamond className="size-3" /> : <Crown className="size-3" />}
@@ -622,34 +753,77 @@ function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 bg-[#FFF8DC] border-[#DAA520]/30" align="end">
-        <DropdownMenuLabel className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center">
+        <DropdownMenuLabel className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center gap-1.5">
           {session.user.name || 'Utilisateur'}
+          <span className="text-sm">{isBuyer ? '🛒' : '🏪'}</span>
           {getPlanBadge(plan)}
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-[#DAA520]/20" />
-        <DropdownMenuItem
-          onClick={() => setFavoritesOpen(true)}
-          className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
-        >
-          <Heart className="mr-2 size-4" />
-          Mes Favoris
-        </DropdownMenuItem>
-        {merchantId && (
+        {isBuyer ? (
           <>
             <DropdownMenuItem
-              onClick={() => setMerchantDashboardOpen(true)}
+              onClick={() => setBuyerSettingsOpen(true)}
               className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
             >
-              <Store className="mr-2 size-4" />
-              Mon Échoppe
+              <Settings className="mr-2 size-4" />
+              Mon Profil
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setPremiumPlansOpen(true)}
+              onClick={() => setFavoritesOpen(true)}
               className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
             >
-              <Diamond className="mr-2 size-4 text-[#DAA520]" />
-              Abonnement
+              <Heart className="mr-2 size-4" />
+              Mes Favoris
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setBuyerSettingsOpen(true)}
+              className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+            >
+              <Package className="mr-2 size-4" />
+              Mes Commandes
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setBuyerSettingsOpen(true)}
+              className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+            >
+              <MapPinPlus className="mr-2 size-4" />
+              Mes Adresses
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setBuyerSettingsOpen(true)}
+              className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+            >
+              <Bell className="mr-2 size-4" />
+              Mes Notifications
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem
+              onClick={() => setFavoritesOpen(true)}
+              className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+            >
+              <Heart className="mr-2 size-4" />
+              Mes Favoris
+            </DropdownMenuItem>
+            {merchantId && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => setMerchantDashboardOpen(true)}
+                  className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+                >
+                  <Store className="mr-2 size-4" />
+                  Mon Échoppe
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setPremiumPlansOpen(true)}
+                  className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+                >
+                  <Diamond className="mr-2 size-4 text-[#DAA520]" />
+                  Abonnement
+                </DropdownMenuItem>
+              </>
+            )}
           </>
         )}
         <DropdownMenuSeparator className="bg-[#DAA520]/20" />
@@ -927,18 +1101,25 @@ function ProductDetailModal() {
 
           {/* DISTANCE - Most important info */}
           {distance !== null && (
-            <div className="flex items-center gap-2 bg-[#FAEBD7]/80 rounded-lg px-4 py-3 border border-[#DAA520]/20">
+            <div className="flex items-center gap-3 bg-[#FAEBD7]/80 rounded-lg px-4 py-3 border border-[#DAA520]/20">
               <Navigation className="size-5 text-[#8B0000] shrink-0" />
-              <div>
+              <div className="flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#8B0000]">
                     {formatDistance(distance)}
                   </span>
                   <span className="text-xs text-[#8B4513]/50">de vous</span>
                 </div>
-                <p className="text-xs text-[#8B4513]/60 mt-0.5">
-                  {selectedProduct.merchant.address || selectedProduct.merchant.location}
-                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <MapPin className="size-3.5 text-[#8B0000]/70" />
+                  <span className="text-sm font-semibold text-[#8B0000]">
+                    Quartier {getQuartier(selectedProduct.merchant.location)}
+                  </span>
+                  <span className="text-xs text-[#8B4513]/50">•</span>
+                  <span className="text-xs text-[#8B4513]/50">
+                    {selectedProduct.merchant.address || selectedProduct.merchant.location}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -1036,7 +1217,7 @@ function ProductDetailModal() {
                           {offerDistance !== null && (
                             <div className="flex items-center gap-1 text-xs text-[#8B4513]/50 mt-0.5">
                               <MapPin className="size-3" />
-                              {formatDistance(offerDistance)}
+                              {formatDistance(offerDistance)} — Quartier {getQuartier(offer.merchant.location)}
                             </div>
                           )}
                         </div>
@@ -1316,7 +1497,7 @@ function MerchantDashboard() {
                 {merchant.name}
                 {getPlanBadge(plan)}
               </div>
-              <div className="text-xs font-normal text-[#8B4513]/60">{merchant.specialty} — {merchant.location}</div>
+              <div className="text-xs font-normal text-[#8B4513]/60">{merchant.specialty} — Quartier {getQuartier(merchant.location)}</div>
             </div>
           </DialogTitle>
           <DialogDescription className="text-[#8B4513]/70">
@@ -1654,6 +1835,805 @@ function MerchantDashboard() {
   )
 }
 
+// ─── Buyer Settings Dialog ───────────────────────────────────────────────────
+
+interface AddressItem {
+  id: string
+  label: string
+  address: string
+  city: string
+  phone: string | null
+  isDefault: boolean
+  latitude: number
+  longitude: number
+}
+
+interface OrderItem {
+  id: string
+  status: string
+  total: number
+  createdAt: string
+  address: AddressItem | null
+  items: {
+    id: string
+    quantity: number
+    price: number
+    product: {
+      id: string
+      name: string
+      image: string
+      unit: string
+      merchant: { id: string; name: string }
+    }
+  }[]
+}
+
+interface NotificationItem {
+  id: string
+  title: string
+  message: string
+  type: string
+  read: boolean
+  createdAt: string
+}
+
+function BuyerSettingsDialog() {
+  const { buyerSettingsOpen, setBuyerSettingsOpen } = useMarketStore()
+  const { data: session } = useSession()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const [activeTab, setActiveTab] = useState('profile')
+
+  // Profile state - initialized from profile data
+  const [profileName, setProfileName] = useState('')
+  const [profilePhone, setProfilePhone] = useState('')
+  const [profileAvatar, setProfileAvatar] = useState('👤')
+  const [profileLoaded, setProfileLoaded] = useState(false)
+
+  // Address form state
+  const [showAddressForm, setShowAddressForm] = useState(false)
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null)
+  const [addressForm, setAddressForm] = useState({
+    label: '',
+    address: '',
+    city: 'Dakar',
+    phone: '',
+    isDefault: false,
+  })
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+
+  // Expanded orders
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
+
+  // Fetch profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/profile')
+      if (!res.ok) throw new Error('Failed to fetch profile')
+      return res.json()
+    },
+    enabled: buyerSettingsOpen && !!session,
+  })
+
+  // Update profile form when data loads - use a callback approach
+  const handleProfileData = useCallback(() => {
+    if (profile && !profileLoaded) {
+      setProfileName(profile.name || '')
+      setProfilePhone(profile.phone || '')
+      setProfileAvatar(profile.image || '👤')
+      setProfileLoaded(true)
+    }
+  }, [profile, profileLoaded])
+
+  // Trigger profile data update on the next render cycle
+  if (profile && !profileLoaded) {
+    // Queue the state updates for the next render
+    Promise.resolve().then(handleProfileData)
+  }
+
+  // Fetch addresses
+  const { data: addresses = [], isLoading: addressesLoading } = useQuery({
+    queryKey: ['addresses'],
+    queryFn: async () => {
+      const res = await fetch('/api/addresses')
+      if (!res.ok) throw new Error('Failed to fetch addresses')
+      return res.json() as Promise<AddressItem[]>
+    },
+    enabled: buyerSettingsOpen && !!session,
+  })
+
+  // Fetch orders
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const res = await fetch('/api/orders')
+      if (!res.ok) throw new Error('Failed to fetch orders')
+      return res.json() as Promise<OrderItem[]>
+    },
+    enabled: buyerSettingsOpen && !!session,
+  })
+
+  // Fetch notifications
+  const { data: notifications = [], isLoading: notificationsLoading } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const res = await fetch('/api/notifications')
+      if (!res.ok) throw new Error('Failed to fetch notifications')
+      return res.json() as Promise<NotificationItem[]>
+    },
+    enabled: buyerSettingsOpen && !!session,
+  })
+
+  // Profile update mutation
+  const profileMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string; image: string }) => {
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to update profile')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      toast({ title: 'Profil mis à jour', description: 'Vos informations ont été enregistrées.' })
+    },
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour le profil', variant: 'destructive' })
+    },
+  })
+
+  // Address mutations
+  const addressCreateMutation = useMutation({
+    mutationFn: async (data: typeof addressForm) => {
+      const res = await fetch('/api/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to create address')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      toast({ title: 'Adresse ajoutée', description: 'Votre adresse a été enregistrée.' })
+      setShowAddressForm(false)
+      setAddressForm({ label: '', address: '', city: 'Dakar', phone: '', isDefault: false })
+      setEditingAddressId(null)
+    },
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible d\'ajouter l\'adresse', variant: 'destructive' })
+    },
+  })
+
+  const addressUpdateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof addressForm }) => {
+      const res = await fetch(`/api/addresses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to update address')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      toast({ title: 'Adresse mise à jour', description: 'Votre adresse a été modifiée.' })
+      setShowAddressForm(false)
+      setAddressForm({ label: '', address: '', city: 'Dakar', phone: '', isDefault: false })
+      setEditingAddressId(null)
+    },
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible de modifier l\'adresse', variant: 'destructive' })
+    },
+  })
+
+  const addressDeleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/addresses/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete address')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      toast({ title: 'Adresse supprimée', description: 'L\'adresse a été retirée.' })
+    },
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible de supprimer l\'adresse', variant: 'destructive' })
+    },
+  })
+
+  // Password change mutation
+  const passwordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Failed to change password')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast({ title: 'Mot de passe modifié', description: 'Votre mot de passe a été changé avec succès.' })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' })
+    },
+  })
+
+  // Notification mutations
+  const markReadMutation = useMutation({
+    mutationFn: async (data: { notificationId?: string; markAll?: boolean }) => {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to mark as read')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+
+  const AVATAR_OPTIONS = ['👤', '🧑', '👨', '👩', '🧔', '👨‍🦱', '👩‍🦱', '🧑‍🦰', '👴', '👵', '🧕', '👳‍♂️']
+
+  function getStatusBadge(status: string) {
+    const map: Record<string, { label: string; color: string; bg: string }> = {
+      en_attente: { label: 'En attente', color: '#92400e', bg: '#fef3c7' },
+      confirmee: { label: 'Confirmée', color: '#1e40af', bg: '#dbeafe' },
+      en_preparation: { label: 'En préparation', color: '#9a3412', bg: '#ffedd5' },
+      livree: { label: 'Livrée', color: '#166534', bg: '#dcfce7' },
+      annulee: { label: 'Annulée', color: '#991b1b', bg: '#fee2e2' },
+    }
+    const s = map[status] || map.en_attente
+    return (
+      <Badge className="border-0 text-xs font-medium" style={{ backgroundColor: s.bg, color: s.color }}>
+        {s.label}
+      </Badge>
+    )
+  }
+
+  const handleSaveProfile = () => {
+    profileMutation.mutate({ name: profileName, phone: profilePhone, image: profileAvatar })
+  }
+
+  const handleSaveAddress = () => {
+    if (!addressForm.label || !addressForm.address) {
+      toast({ title: 'Champs requis', description: 'Le libellé et l\'adresse sont obligatoires', variant: 'destructive' })
+      return
+    }
+    if (editingAddressId) {
+      addressUpdateMutation.mutate({ id: editingAddressId, data: addressForm })
+    } else {
+      addressCreateMutation.mutate(addressForm)
+    }
+  }
+
+  const handleChangePassword = () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({ title: 'Champs requis', description: 'Remplissez tous les champs', variant: 'destructive' })
+      return
+    }
+    if (newPassword.length < 6) {
+      toast({ title: 'Erreur', description: 'Le nouveau mot de passe doit contenir au moins 6 caractères', variant: 'destructive' })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: 'Erreur', description: 'Les mots de passe ne correspondent pas', variant: 'destructive' })
+      return
+    }
+    passwordMutation.mutate({ currentPassword, newPassword })
+  }
+
+  const unreadCount = notifications.filter(n => !n.read).length
+
+  return (
+    <Dialog open={buyerSettingsOpen} onOpenChange={setBuyerSettingsOpen}>
+      <DialogContent className="sm:max-w-2xl bg-[#FFF8DC] border-[#DAA520]/30 max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center gap-2">
+            ⚜ Mon Espace Acheteur ⚜
+          </DialogTitle>
+          <DialogDescription className="text-[#8B4513]/70">
+            Gérez votre profil, adresses, commandes et plus
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="flex flex-wrap gap-1 bg-[#FAEBD7] border border-[#DAA520]/20 h-auto p-1">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-[#8B0000] data-[state=active]:text-[#FFD700] text-xs gap-1">
+              <Settings className="size-3" /> Profil
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="data-[state=active]:bg-[#8B0000] data-[state=active]:text-[#FFD700] text-xs gap-1">
+              <MapPinPlus className="size-3" /> Adresses
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="data-[state=active]:bg-[#8B0000] data-[state=active]:text-[#FFD700] text-xs gap-1">
+              <Package className="size-3" /> Commandes
+            </TabsTrigger>
+            <TabsTrigger value="security" className="data-[state=active]:bg-[#8B0000] data-[state=active]:text-[#FFD700] text-xs gap-1">
+              <Shield className="size-3" /> Sécurité
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-[#8B0000] data-[state=active]:text-[#FFD700] text-xs gap-1 relative">
+              <Bell className="size-3" /> Notifications
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#8B0000] text-[#FFD700] text-[9px] rounded-full size-4 flex items-center justify-center font-bold">
+                  {unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 overflow-y-auto mt-4 min-h-0">
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="mt-0 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[#8B4513] text-sm">Avatar</Label>
+                <div className="flex flex-wrap gap-2">
+                  {AVATAR_OPTIONS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setProfileAvatar(emoji)}
+                      className={`text-2xl rounded-lg border-2 p-1.5 transition-all ${
+                        profileAvatar === emoji
+                          ? 'border-[#8B0000] bg-[#8B0000]/10 shadow-sm'
+                          : 'border-[#DAA520]/20 hover:border-[#DAA520]/40'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#8B4513] text-sm">Nom</Label>
+                <Input
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="Votre nom"
+                  className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#8B4513] text-sm">Email</Label>
+                <Input
+                  value={profile?.email || ''}
+                  readOnly
+                  className="border-[#DAA520]/20 bg-[#FAEBD7]/40 text-[#8B4513]/60 cursor-not-allowed"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#8B4513] text-sm">Téléphone</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#8B4513]/40" />
+                  <Input
+                    value={profilePhone}
+                    onChange={(e) => setProfilePhone(e.target.value)}
+                    placeholder="+221 77 123 45 67"
+                    className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] pl-9"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={profileMutation.isPending}
+                className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-2"
+              >
+                <Save className="size-4" />
+                {profileMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </TabsContent>
+
+            {/* Addresses Tab */}
+            <TabsContent value="addresses" className="mt-0 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#8B4513]/70">{addresses.length} adresse{addresses.length !== 1 ? 's' : ''}</span>
+                <Button
+                  onClick={() => {
+                    setEditingAddressId(null)
+                    setAddressForm({ label: '', address: '', city: 'Dakar', phone: '', isDefault: false })
+                    setShowAddressForm(!showAddressForm)
+                  }}
+                  size="sm"
+                  className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1"
+                >
+                  <PlusCircle className="size-3.5" />
+                  Ajouter
+                </Button>
+              </div>
+
+              {showAddressForm && (
+                <div className="rounded-lg border border-[#DAA520]/30 bg-[#FAEBD7]/40 p-4 space-y-3">
+                  <h4 className="font-[family-name:var(--font-playfair)] text-sm font-semibold text-[#3D1F1A]">
+                    {editingAddressId ? '✏️ Modifier l\'adresse' : '➕ Nouvelle adresse'}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-[#8B4513]">Libellé *</Label>
+                      <Input
+                        placeholder="Maison, Bureau..."
+                        value={addressForm.label}
+                        onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
+                        className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-[#8B4513]">Ville</Label>
+                      <Input
+                        placeholder="Dakar"
+                        value={addressForm.city}
+                        onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                        className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Adresse *</Label>
+                    <Input
+                      placeholder="12 Rue Carnot, Dakar"
+                      value={addressForm.address}
+                      onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })}
+                      className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Téléphone</Label>
+                    <Input
+                      placeholder="+221 77 123 45 67"
+                      value={addressForm.phone}
+                      onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                      className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#8B4513]">
+                    <input
+                      type="checkbox"
+                      checked={addressForm.isDefault}
+                      onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                      className="rounded border-[#DAA520]/30"
+                    />
+                    Adresse par défaut
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handleSaveAddress}
+                      disabled={addressCreateMutation.isPending || addressUpdateMutation.isPending}
+                      size="sm"
+                      className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1"
+                    >
+                      {addressCreateMutation.isPending || addressUpdateMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowAddressForm(false)} className="text-[#8B4513]/60">
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {addressesLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-20 animate-pulse rounded-lg bg-[#DAA520]/10" />
+                  ))}
+                </div>
+              ) : addresses.length === 0 ? (
+                <div className="text-center py-8">
+                  <MapPinPlus className="size-10 text-[#DAA520]/30 mx-auto mb-2" />
+                  <p className="text-sm text-[#8B4513]/60">Aucune adresse enregistrée</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      className={`rounded-lg border p-3 transition-colors ${
+                        addr.isDefault
+                          ? 'border-[#DAA520]/40 bg-[#FAEBD7]/60'
+                          : 'border-[#DAA520]/20 bg-white/30 hover:bg-[#FAEBD7]/30'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-[#3D1F1A]">
+                              {addr.label === 'Maison' ? <Home className="inline size-3.5 mr-1" /> : <Building2 className="inline size-3.5 mr-1" />}
+                              {addr.label}
+                            </span>
+                            {addr.isDefault && (
+                              <Badge className="bg-[#DAA520]/20 text-[#8B4513] border-0 text-[10px]">Par défaut</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#8B4513]/60 mt-0.5">{addr.address}, {addr.city}</p>
+                          {addr.phone && <p className="text-xs text-[#8B4513]/50 mt-0.5">📞 {addr.phone}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingAddressId(addr.id)
+                              setAddressForm({
+                                label: addr.label,
+                                address: addr.address,
+                                city: addr.city,
+                                phone: addr.phone || '',
+                                isDefault: addr.isDefault,
+                              })
+                              setShowAddressForm(true)
+                            }}
+                            className="size-7 p-0 text-[#8B4513] hover:bg-[#FAEBD7]"
+                          >
+                            <Edit className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm(`Supprimer "${addr.label}" ?`)) {
+                                addressDeleteMutation.mutate(addr.id)
+                              }
+                            }}
+                            className="size-7 p-0 text-red-500 hover:bg-red-50"
+                          >
+                            <Trash className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Orders Tab */}
+            <TabsContent value="orders" className="mt-0 space-y-3">
+              {ordersLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-20 animate-pulse rounded-lg bg-[#DAA520]/10" />
+                  ))}
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="size-10 text-[#DAA520]/30 mx-auto mb-2" />
+                  <p className="text-sm text-[#8B4513]/60">Aucune commande pour le moment</p>
+                  <p className="text-xs text-[#8B4513]/40 mt-1">Vos achats apparaîtront ici</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {orders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded-lg border border-[#DAA520]/20 bg-white/30 overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                        className="w-full p-3 flex items-center justify-between hover:bg-[#FAEBD7]/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-[#3D1F1A]">
+                                #{order.id.slice(-8)}
+                              </span>
+                              {getStatusBadge(order.status)}
+                            </div>
+                            <p className="text-xs text-[#8B4513]/50 mt-0.5">
+                              {new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                              {' · '}
+                              {order.items.length} article{order.items.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#8B0000]">
+                            {formatPrice(order.total)}
+                          </span>
+                          <ChevronDown className={`size-3.5 text-[#8B4513]/40 ml-1 inline transition-transform ${expandedOrderId === order.id ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
+                      {expandedOrderId === order.id && (
+                        <div className="border-t border-[#DAA520]/15 p-3 bg-[#FAEBD7]/20">
+                          {order.address && (
+                            <p className="text-xs text-[#8B4513]/60 mb-2 flex items-center gap-1">
+                              <MapPin className="size-3" />
+                              {order.address.label} — {order.address.address}, {order.address.city}
+                            </p>
+                          )}
+                          <div className="space-y-1.5">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span>{item.product.image}</span>
+                                  <span className="text-[#3D1F1A]">{item.product.name}</span>
+                                  <span className="text-[#8B4513]/40">x{item.quantity}</span>
+                                </div>
+                                <span className="font-medium text-[#8B0000]">{formatPrice(item.price * item.quantity)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Security Tab */}
+            <TabsContent value="security" className="mt-0 space-y-4">
+              <div className="rounded-lg border border-[#DAA520]/20 bg-white/30 p-4 space-y-3">
+                <h4 className="font-[family-name:var(--font-playfair)] text-sm font-semibold text-[#3D1F1A] flex items-center gap-2">
+                  <Shield className="size-4 text-[#8B0000]" />
+                  Changer le mot de passe
+                </h4>
+                <div className="space-y-2">
+                  <Label className="text-xs text-[#8B4513]">Mot de passe actuel</Label>
+                  <div className="relative">
+                    <Input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••"
+                      className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B4513]/40 hover:text-[#8B4513]"
+                    >
+                      {showCurrentPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-[#8B4513]">Nouveau mot de passe</Label>
+                  <div className="relative">
+                    <Input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Minimum 6 caractères"
+                      className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B4513]/40 hover:text-[#8B4513]"
+                    >
+                      {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-[#8B4513]">Confirmer le mot de passe</Label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Retapez le nouveau mot de passe"
+                    className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520]"
+                  />
+                </div>
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={passwordMutation.isPending}
+                  size="sm"
+                  className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1"
+                >
+                  <Shield className="size-3.5" />
+                  {passwordMutation.isPending ? 'Modification...' : 'Changer le mot de passe'}
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="mt-0 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#8B4513]/70">
+                  {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                  {unreadCount > 0 && ` · ${unreadCount} non lue${unreadCount !== 1 ? 's' : ''}`}
+                </span>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => markReadMutation.mutate({ markAll: true })}
+                    className="text-xs text-[#8B0000] hover:bg-[#FAEBD7] gap-1"
+                  >
+                    <Check className="size-3" />
+                    Tout marquer comme lu
+                  </Button>
+                )}
+              </div>
+              {notificationsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-16 animate-pulse rounded-lg bg-[#DAA520]/10" />
+                  ))}
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bell className="size-10 text-[#DAA520]/30 mx-auto mb-2" />
+                  <p className="text-sm text-[#8B4513]/60">Aucune notification</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`rounded-lg border p-3 transition-colors ${
+                        notif.read
+                          ? 'border-[#DAA520]/10 bg-white/20'
+                          : 'border-[#DAA520]/25 bg-[#FAEBD7]/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            {!notif.read && <span className="size-2 rounded-full bg-[#8B0000] shrink-0" />}
+                            <span className={`text-sm ${notif.read ? 'text-[#8B4513]/70' : 'font-semibold text-[#3D1F1A]'}`}>
+                              {notif.title}
+                            </span>
+                          </div>
+                          <p className={`text-xs mt-0.5 ${notif.read ? 'text-[#8B4513]/50' : 'text-[#8B4513]/70'}`}>
+                            {notif.message}
+                          </p>
+                          <p className="text-[10px] text-[#8B4513]/40 mt-1 flex items-center gap-1">
+                            <Clock className="size-2.5" />
+                            {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        {!notif.read && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => markReadMutation.mutate({ notificationId: notif.id })}
+                            className="text-xs text-[#8B0000] hover:bg-[#FAEBD7] shrink-0 h-7 px-2"
+                          >
+                            <Eye className="size-3 mr-1" />
+                            Lu
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Hero Section ────────────────────────────────────────────────────────────
 
 function HeroSection({
@@ -1967,7 +2947,7 @@ function ProductCard({ product }: { product: Product }) {
               {distance !== null && (
                 <span className="text-xs text-[#8B4513]/70 flex items-center gap-1">
                   <MapPin className="size-3" />
-                  {formatDistance(distance)}
+                  {formatDistance(distance)} · Quartier {getQuartier(product.merchant.location)}
                 </span>
               )}
               {!product.inStock ? (
@@ -2081,7 +3061,7 @@ function MerchantCard({
             )}
             <div className="flex items-center gap-1 text-[#8B4513]/70">
               <MapPin className="size-3" />
-              {merchant.location}
+              Quartier {getQuartier(merchant.location)}
             </div>
             <Badge
               variant="outline"
@@ -2257,12 +3237,12 @@ function MerchantShopPage() {
                 {distance !== null && (
                   <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[#FFD700] font-semibold">
                     <Navigation className="size-3.5" />
-                    {formatDistance(distance)}
+                    {formatDistance(distance)} · Quartier {getQuartier(merchant.location)}
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[#FAEBD7]/80">
                   <MapPin className="size-3.5" />
-                  {merchant.location}
+                  {merchant.address || merchant.location}
                 </div>
                 <Badge
                   className="font-medium"
@@ -2454,6 +3434,7 @@ export default function HomePage() {
         <FavoritesPanel />
         <MerchantDashboard />
         <PremiumPlansDialog />
+        <BuyerSettingsDialog />
       </>
     )
   }
@@ -2627,6 +3608,7 @@ export default function HomePage() {
       <FavoritesPanel />
       <MerchantDashboard />
       <PremiumPlansDialog />
+      <BuyerSettingsDialog />
     </div>
   )
 }
