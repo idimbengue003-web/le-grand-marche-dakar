@@ -31,6 +31,8 @@ import {
   Diamond,
   Zap,
   Check,
+  ShoppingCart,
+  ArrowLeft,
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -287,12 +289,6 @@ async function subscribePlan(plan: string): Promise<{ plan: string; active: bool
     body: JSON.stringify({ plan }),
   })
   if (!res.ok) throw new Error('Failed to subscribe')
-  return res.json()
-}
-
-async function fetchSubscription(): Promise<{ plan: string; active: boolean }> {
-  const res = await fetch('/api/subscription')
-  if (!res.ok) return { plan: 'gratuit', active: false }
   return res.json()
 }
 
@@ -591,8 +587,8 @@ function UserMenu() {
   const { data: session } = useSession()
   const { setAuthModalOpen, setFavoritesOpen, setMerchantDashboardOpen, setPremiumPlansOpen } = useMarketStore()
   const { toast } = useToast()
-  const merchantId = (session?.user as any)?.merchantId
-  const plan = (session?.user as any)?.plan || 'gratuit'
+  const merchantId = (session?.user as Record<string, unknown>)?.merchantId as string | undefined
+  const plan = ((session?.user as Record<string, unknown>)?.plan as string) || 'gratuit'
 
   if (!session) {
     return (
@@ -679,7 +675,7 @@ function PremiumPlansDialog() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const currentPlan = (session?.user as any)?.plan || 'gratuit'
+  const currentPlan = ((session?.user as Record<string, unknown>)?.plan as string) || 'gratuit'
 
   const subscribeMutation = useMutation({
     mutationFn: (plan: string) => subscribePlan(plan),
@@ -821,7 +817,7 @@ function PremiumPlansDialog() {
 // ─── Product Detail Modal ────────────────────────────────────────────────────
 
 function ProductDetailModal() {
-  const { selectedProduct, setSelectedProduct } = useMarketStore()
+  const { selectedProduct, setSelectedProduct, navigateToShop } = useMarketStore()
   const { data: session } = useSession()
   const { setAuthModalOpen } = useMarketStore()
   const queryClient = useQueryClient()
@@ -1071,25 +1067,54 @@ function ProductDetailModal() {
             </div>
           )}
 
-          {/* Favorite button */}
-          <Button
-            onClick={() => {
-              if (!session) {
-                setAuthModalOpen(true)
-                return
-              }
-              toggleMutation.mutate()
-            }}
-            variant={isFavorited ? 'default' : 'outline'}
-            className={`w-full gap-2 ${
-              isFavorited
-                ? 'bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700]'
-                : 'border-[#8B0000]/30 text-[#8B0000] hover:bg-[#8B0000]/5'
-            }`}
-          >
-            <Heart className={`size-4 ${isFavorited ? 'fill-current' : ''}`} />
-            {isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          </Button>
+          {/* Action buttons */}
+          <div className="space-y-2">
+            {/* Acheter button - green, prominent */}
+            <Button
+              className="w-full gap-2 bg-green-700 hover:bg-green-800 text-white font-bold text-base py-6 shadow-lg"
+              onClick={() => {
+                toast({
+                  title: '🛒 Produit ajouté au panier',
+                  description: `${selectedProduct.name} — ${formatPrice(selectedProduct.price)}`,
+                })
+              }}
+            >
+              <ShoppingCart className="size-5" />
+              Acheter — {formatPrice(selectedProduct.price)}
+            </Button>
+
+            {/* Voir la Boutique button */}
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-[#8B4513]/30 text-[#8B4513] hover:bg-[#FAEBD7] hover:border-[#8B4513]/50 font-semibold py-5"
+              onClick={() => {
+                navigateToShop(selectedProduct.merchant.id)
+              }}
+            >
+              <Store className="size-4" />
+              🏪 Voir la Boutique
+            </Button>
+
+            {/* Favorite button */}
+            <Button
+              onClick={() => {
+                if (!session) {
+                  setAuthModalOpen(true)
+                  return
+                }
+                toggleMutation.mutate()
+              }}
+              variant={isFavorited ? 'default' : 'outline'}
+              className={`w-full gap-2 ${
+                isFavorited
+                  ? 'bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700]'
+                  : 'border-[#8B0000]/30 text-[#8B0000] hover:bg-[#8B0000]/5'
+              }`}
+            >
+              <Heart className={`size-4 ${isFavorited ? 'fill-current' : ''}`} />
+              {isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1186,8 +1211,8 @@ function MerchantDashboard() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const merchantId = (session?.user as any)?.merchantId
-  const plan = (session?.user as any)?.plan || 'gratuit'
+  const merchantId = (session?.user as Record<string, unknown>)?.merchantId as string | undefined
+  const plan = ((session?.user as Record<string, unknown>)?.plan as string) || 'gratuit'
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [newProduct, setNewProduct] = useState({
@@ -1936,7 +1961,7 @@ function ProductCard({ product }: { product: Product }) {
             </Badge>
           </div>
 
-          {/* Distance + Stock + View button */}
+          {/* Distance + Stock + Action buttons */}
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               {distance !== null && (
@@ -1951,18 +1976,31 @@ function ProductCard({ product }: { product: Product }) {
                 <span className="text-xs text-green-700/70">En stock</span>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                setSelectedProduct(product)
-              }}
-              className="gap-1 text-[#8B4513] hover:text-[#3D1F1A] hover:bg-[#FAEBD7] h-7 px-2 text-xs"
-            >
-              <Eye className="size-3" />
-              Voir
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedProduct(product)
+                }}
+                className="gap-1 text-[#8B4513] hover:text-[#3D1F1A] hover:bg-[#FAEBD7] h-7 px-2 text-xs"
+              >
+                <Eye className="size-3" />
+                Voir
+              </Button>
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedProduct(product)
+                }}
+                className="gap-1 bg-green-700 hover:bg-green-800 text-white h-7 px-2 text-xs font-semibold"
+              >
+                <ShoppingCart className="size-3" />
+                Acheter
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1981,7 +2019,7 @@ function MerchantCard({
   products: Product[]
   plan?: string
 }) {
-  const { setSelectedProduct } = useMarketStore()
+  const { setSelectedProduct, navigateToShop } = useMarketStore()
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
@@ -2057,6 +2095,17 @@ function MerchantCard({
               {merchant.specialty}
             </Badge>
           </div>
+
+          {/* Voir la Boutique button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigateToShop(merchant.id)}
+            className="mt-3 gap-1.5 border-[#8B4513]/30 text-[#8B4513] hover:bg-[#FAEBD7] hover:border-[#8B4513]/50 text-xs font-semibold"
+          >
+            <Store className="size-3.5" />
+            🏪 Voir la Boutique
+          </Button>
         </div>
 
         <Separator className="bg-[#DAA520]/15" />
@@ -2112,6 +2161,204 @@ function MerchantCard({
   )
 }
 
+// ─── Merchant Shop Page ──────────────────────────────────────────────────────
+
+function MerchantShopPage() {
+  const { viewingMerchantId, navigateToMarket, setSelectedProduct } = useMarketStore()
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setUserLocation({ lat: 14.6937, lng: -17.4441 }),
+        { timeout: 5000 }
+      )
+    }
+  }, [])
+
+  const { data: merchants = [], isLoading: merchantsLoading } = useQuery({
+    queryKey: ['merchants'],
+    queryFn: fetchMerchants,
+  })
+
+  const merchant = merchants.find((m) => m.id === viewingMerchantId)
+
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['merchant-products', viewingMerchantId],
+    queryFn: () => fetchMerchantProducts(viewingMerchantId!),
+    enabled: !!viewingMerchantId,
+  })
+
+  const distance = (merchant && userLocation)
+    ? haversineDistance(userLocation.lat, userLocation.lng, merchant.latitude, merchant.longitude)
+    : null
+
+  const isLoading = merchantsLoading || productsLoading
+
+  return (
+    <div className="min-h-screen bg-[#FFF8DC]">
+      {/* Shop header with banner */}
+      <div className="relative overflow-hidden">
+        {/* Banner background */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{ backgroundColor: merchant?.banner || '#8B0000' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#2C1810]/90 via-[#3D1F1A]/80 to-[#FFF8DC]" />
+
+        {/* Back button */}
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pt-4">
+          <Button
+            variant="ghost"
+            onClick={navigateToMarket}
+            className="gap-2 text-[#FFD700]/90 hover:text-[#FFD700] hover:bg-white/10 font-medium"
+          >
+            <ArrowLeft className="size-4" />
+            Retour au marché
+          </Button>
+        </div>
+
+        {/* Merchant info */}
+        {merchant && (
+          <div className="relative z-10 mx-auto max-w-5xl px-4 pt-2 pb-10 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Merchant avatar */}
+              <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-white/90 text-4xl shadow-xl border-2 border-[#DAA520]/40">
+                {merchant.image}
+              </div>
+
+              {/* Merchant name */}
+              <h1 className="font-[family-name:var(--font-playfair)] text-3xl sm:text-4xl font-bold text-[#FFD700] tracking-wide drop-shadow-lg">
+                {merchant.name}
+              </h1>
+
+              {/* Ornamental divider */}
+              <div className="mx-auto mt-2 flex items-center justify-center gap-2">
+                <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#DAA520] sm:w-20" />
+                <span className="text-[#DAA520]">⚜</span>
+                <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[#DAA520] sm:w-20" />
+              </div>
+
+              {/* Description */}
+              <p className="mt-3 font-[family-name:var(--font-playfair)] text-base text-[#FAEBD7]/80 italic max-w-xl mx-auto">
+                {merchant.description}
+              </p>
+
+              {/* Rating, Distance, Location, Specialty badges */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm">
+                <div className="flex items-center gap-1 bg-white/10 rounded-full px-3 py-1.5">
+                  <StarRating rating={merchant.rating} />
+                </div>
+                {distance !== null && (
+                  <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[#FFD700] font-semibold">
+                    <Navigation className="size-3.5" />
+                    {formatDistance(distance)}
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[#FAEBD7]/80">
+                  <MapPin className="size-3.5" />
+                  {merchant.location}
+                </div>
+                <Badge
+                  className="font-medium"
+                  style={{
+                    backgroundColor: `${merchant.banner}30`,
+                    color: '#FFD700',
+                    borderColor: `${merchant.banner}50`,
+                  }}
+                >
+                  {merchant.specialty}
+                </Badge>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Bottom border */}
+        <div className="relative h-3 bg-gradient-to-r from-[#8B0000] via-[#DAA520] to-[#8B0000]" />
+      </div>
+
+      {/* Products section */}
+      <main className="mx-auto max-w-7xl px-4 py-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#3D1F1A] flex items-center gap-2">
+            <span className="text-2xl">🏪</span>
+            Nos Produits
+            <Badge variant="outline" className="text-xs font-normal border-[#DAA520]/30 text-[#8B4513]">
+              {products.length} produit{products.length !== 1 ? 's' : ''}
+            </Badge>
+          </h2>
+        </div>
+
+        <OrnamentalDivider />
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="animate-pulse border-[#DAA520]/10 bg-[#FAEBD7]/30">
+                <div className="h-1.5 bg-[#DAA520]/10" />
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="size-14 rounded-xl bg-[#DAA520]/10" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/4 rounded bg-[#DAA520]/10" />
+                      <div className="h-3 w-1/2 rounded bg-[#DAA520]/10" />
+                    </div>
+                  </div>
+                  <div className="mt-3 h-6 w-1/3 rounded bg-[#DAA520]/10" />
+                  <div className="mt-2 flex gap-2">
+                    <div className="h-5 w-20 rounded-full bg-[#DAA520]/10" />
+                    <div className="h-5 w-16 rounded-full bg-[#DAA520]/10" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <span className="text-6xl mb-4">🏪</span>
+            <h3 className="font-[family-name:var(--font-playfair)] text-xl font-semibold text-[#3D1F1A]">
+              Aucun produit disponible
+            </h3>
+            <p className="mt-2 text-sm text-[#8B4513]/60">
+              Ce marchand n&apos;a pas encore de produits en ligne.
+            </p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              layout
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4"
+            >
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-[#DAA520]/20 bg-gradient-to-b from-[#3D1F1A] to-[#2C1810]">
+        <div className="mx-auto max-w-7xl px-4 py-5 text-center">
+          <OrnamentalDivider />
+          <p className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/70 mt-2">
+            👑 Le Grand Marché Royal © 2025 👑
+          </p>
+          <p className="mt-1 text-xs text-[#FAEBD7]/30">
+            ☙ Tous les trésors du royaume en un marché ✦
+          </p>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
 // ─── Main Page Component ─────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -2122,6 +2369,7 @@ export default function HomePage() {
     viewMode,
     sortField,
     sortOrder,
+    pageView,
     setSelectedCategoryId,
     setSearchQuery,
     setViewMode,
@@ -2173,7 +2421,7 @@ export default function HomePage() {
     enabled: !!session,
   })
 
-  const currentMerchantId = (session?.user as any)?.merchantId
+  const currentMerchantId = (session?.user as Record<string, unknown>)?.merchantId as string | undefined
 
   const isLoading = categoriesLoading || merchantsLoading || productsLoading
 
@@ -2195,6 +2443,22 @@ export default function HomePage() {
     (m) => (merchantProductMap.get(m.id)?.length || 0) > 0
   )
 
+  // Render shop page
+  if (pageView === 'shop') {
+    return (
+      <>
+        <MerchantShopPage />
+        {/* Shared modals */}
+        <AuthModal />
+        <ProductDetailModal />
+        <FavoritesPanel />
+        <MerchantDashboard />
+        <PremiumPlansDialog />
+      </>
+    )
+  }
+
+  // Render market page (default)
   return (
     <div className="flex min-h-screen flex-col bg-[#FFF8DC]">
       {/* Hero */}
@@ -2335,7 +2599,7 @@ export default function HomePage() {
                     key={merchant.id}
                     merchant={merchant}
                     products={merchantProductMap.get(merchant.id) || []}
-                    plan={merchant.id === currentMerchantId ? ((session?.user as any)?.plan || 'gratuit') : undefined}
+                    plan={merchant.id === currentMerchantId ? (((session?.user as Record<string, unknown>)?.plan as string) || 'gratuit') : undefined}
                   />
                 ))}
               </motion.div>

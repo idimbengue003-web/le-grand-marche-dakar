@@ -4,6 +4,7 @@ export type ViewMode = 'merchant' | 'product'
 export type SortField = 'price' | 'name'
 export type SortOrder = 'asc' | 'desc'
 export type AuthMode = 'login' | 'register'
+export type PageView = 'market' | 'shop'
 
 interface Product {
   id: string
@@ -66,6 +67,10 @@ interface MarketState {
   // Premium plans dialog
   premiumPlansOpen: boolean
 
+  // Navigation - page views
+  pageView: PageView
+  viewingMerchantId: string | null
+
   // Actions
   setSelectedCategoryId: (id: string | null) => void
   setSearchQuery: (query: string) => void
@@ -79,6 +84,10 @@ interface MarketState {
   setMerchantDashboardOpen: (open: boolean) => void
   setFavoritesOpen: (open: boolean) => void
   setPremiumPlansOpen: (open: boolean) => void
+  setPageView: (view: PageView) => void
+  setViewingMerchantId: (id: string | null) => void
+  navigateToShop: (merchantId: string) => void
+  navigateToMarket: () => void
 }
 
 export const useMarketStore = create<MarketState>((set) => ({
@@ -95,6 +104,9 @@ export const useMarketStore = create<MarketState>((set) => ({
   favoritesOpen: false,
   premiumPlansOpen: false,
 
+  pageView: 'market',
+  viewingMerchantId: null,
+
   setSelectedCategoryId: (id) => set({ selectedCategoryId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -107,4 +119,8 @@ export const useMarketStore = create<MarketState>((set) => ({
   setMerchantDashboardOpen: (open) => set({ merchantDashboardOpen: open }),
   setFavoritesOpen: (open) => set({ favoritesOpen: open }),
   setPremiumPlansOpen: (open) => set({ premiumPlansOpen: open }),
+  setPageView: (view) => set({ pageView: view }),
+  setViewingMerchantId: (id) => set({ viewingMerchantId: id }),
+  navigateToShop: (merchantId) => set({ pageView: 'shop', viewingMerchantId: merchantId, selectedProduct: null }),
+  navigateToMarket: () => set({ pageView: 'market', viewingMerchantId: null, selectedProduct: null }),
 }))

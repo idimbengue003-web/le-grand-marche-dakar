@@ -169,3 +169,29 @@ Stage Summary:
 - Merchant dashboard: view products, toggle stock status, toggle featured status
 - All buttons functional - no decorative-only elements
 - Clean royal theme preserved (gold/burgundy/cream)
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Add Buy button, product page, and merchant shop page
+
+Work Log:
+- Read existing page.tsx (2368 lines) to understand all components and logic
+- Read updated market-store.ts with new state: pageView, viewingMerchantId, navigateToShop, navigateToMarket
+- Added ShoppingCart and ArrowLeft icons to lucide-react imports
+- Updated ProductCard: Added "Acheter" (Buy) green button alongside existing "Voir" button
+- Enhanced ProductDetailModal: Added prominent "🛒 Acheter" green button, "🏪 Voir la Boutique" button that navigates to merchant shop page, kept favorite button but made buy+shop more prominent
+- Created MerchantShopPage component: Full-page view with back button, merchant header with banner/rating/distance/specialty, product grid, footer
+- Updated MerchantCard: Added "🏪 Voir la Boutique" button that calls navigateToShop
+- Updated HomePage: Added pageView state check - renders MerchantShopPage when pageView === 'shop', market view otherwise
+- Both views share the same modals (AuthModal, ProductDetailModal, FavoritesPanel, MerchantDashboard, PremiumPlansDialog)
+- Fixed `as any` type casts to use `Record<string, unknown>` for better type safety
+- All text in French, royal theme preserved
+- ESLint passes with no errors or warnings
+
+Stage Summary:
+- "Acheter" button added to ProductCard (green, with ShoppingCart icon)
+- ProductDetailModal now has 3 action buttons: Acheter (green), Voir la Boutique (outline), and Ajouter aux favoris
+- MerchantShopPage shows full merchant boutique with back navigation
+- Page view switching works via Zustand store (pageView, navigateToShop, navigateToMarket)
+- All existing functionality preserved (auth, favorites, merchant dashboard, premium plans, search, categories, sort)
