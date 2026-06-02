@@ -3,27 +3,27 @@ import { hash } from 'bcryptjs'
 import { NextResponse } from 'next/server'
 
 const CATEGORIES = [
-  { name: 'Viandes', slug: 'viandes', icon: '🥩', description: 'Sélection royale de viandes fines et succulentes', color: '#8B0000' },
-  { name: 'Poissons', slug: 'poissons', icon: '🐟', description: 'Poissons frais de nos rivières et mers', color: '#1E90FF' },
-  { name: 'Fruits', slug: 'fruits', icon: '🍎', description: 'Fruits exquis du verger royal', color: '#FF6347' },
-  { name: 'Légumes', slug: 'legumes', icon: '🥬', description: 'Légumes frais des jardins du château', color: '#2E8B57' },
-  { name: 'Épices', slug: 'epices', icon: '🌶️', description: 'Épices rares des terres lointaines', color: '#FF8C00' },
-  { name: 'Miel & Confitures', slug: 'miel-confitures', icon: '🍯', description: 'Miel doré et confitures artisanales', color: '#DAA520' },
-  { name: 'Fromages', slug: 'fromages', icon: '🧀', description: 'Fromages affinés des meilleures fromageries', color: '#FFD700' },
-  { name: 'Boulangerie', slug: 'boulangerie', icon: '🍞', description: 'Pains et pâtisseries du boulanger royal', color: '#D2691E' },
-  { name: 'Vins & Boissons', slug: 'vins-boissons', icon: '🍷', description: 'Vins de nos vignobles et boissons royales', color: '#722F37' },
-  { name: 'Herbes Aromatiques', slug: 'herbes', icon: '🌿', description: 'Herbes fraîches du jardin botanique', color: '#3CB371' },
-  { name: 'Citrons & Agrumes', slug: 'citrons-agrumes', icon: '🍋', description: 'Agrumes ensoleillés des orangeries', color: '#FFD700' },
-  { name: 'Volailles', slug: 'volailles', icon: '🐔', description: 'Volailles fermières de la basse-cour royale', color: '#CD853F' },
+  { name: 'Viandes', slug: 'viandes', icon: '🥩', description: 'Viandes fraîches et de qualité', color: '#8B0000' },
+  { name: 'Poissons', slug: 'poissons', icon: '🐟', description: 'Poissons et fruits de mer de nos côtes', color: '#1E90FF' },
+  { name: 'Fruits', slug: 'fruits', icon: '🍎', description: 'Fruits frais du marché', color: '#FF6347' },
+  { name: 'Légumes', slug: 'legumes', icon: '🥬', description: 'Légumes frais des jardins', color: '#2E8B57' },
+  { name: 'Épices', slug: 'epices', icon: '🌶️', description: 'Épices et condiments', color: '#FF8C00' },
+  { name: 'Miel & Confitures', slug: 'miel-confitures', icon: '🍯', description: 'Miel et confitures artisanales', color: '#DAA520' },
+  { name: 'Fromages', slug: 'fromages', icon: '🧀', description: 'Fromages locaux et importés', color: '#FFD700' },
+  { name: 'Boulangerie', slug: 'boulangerie', icon: '🍞', description: 'Pains et pâtisseries', color: '#D2691E' },
+  { name: 'Boissons', slug: 'boissons', icon: '🍷', description: 'Boissons et jus naturels', color: '#722F37' },
+  { name: 'Herbes Aromatiques', slug: 'herbes', icon: '🌿', description: 'Herbes fraîches et séchées', color: '#3CB371' },
+  { name: 'Citrons & Agrumes', slug: 'citrons-agrumes', icon: '🍋', description: 'Agrumes frais', color: '#FFD700' },
+  { name: 'Volailles', slug: 'volailles', icon: '🐔', description: 'Volailles fermières', color: '#CD853F' },
 ]
 
 // Merchants with Dakar, Senegal coordinates
 const MERCHANTS = [
   {
-    name: 'Maison de Beaumont',
-    slug: 'maison-beaumont',
-    description: 'Fournisseur officiel de la cour depuis 3 générations. Les viandes les plus tendres du royaume.',
-    image: '🏰',
+    name: 'Boucherie Al Baraka',
+    slug: 'boucherie-albaraka',
+    description: 'Viandes halal de qualité supérieure, fraîcheur garantie chaque jour.',
+    image: '🥩',
     rating: 4.9,
     location: 'Almadies, Dakar',
     address: '45 Rue des Almadies, Dakar',
@@ -33,10 +33,10 @@ const MERCHANTS = [
     banner: '#8B0000',
   },
   {
-    name: 'Poissonnerie du Dauphin',
-    slug: 'poissonnerie-dauphin',
-    description: 'Poissons et fruits de mer pêchés chaque matin dans les eaux cristallines du lac royal.',
-    image: '🐬',
+    name: 'Poissonnerie Ndiagane',
+    slug: 'poissonnerie-ndiagane',
+    description: 'Poissons frais pêchés chaque matin à Soumbedioune.',
+    image: '🐟',
     rating: 4.7,
     location: 'Soumbedioune, Dakar',
     address: '12 Quai de Soumbedioune, Dakar',
@@ -46,9 +46,9 @@ const MERCHANTS = [
     banner: '#1E90FF',
   },
   {
-    name: 'Jardins du Soleil',
-    slug: 'jardins-soleil',
-    description: 'Fruits et légumes cultivés dans les jardins ensoleillés du domaine royal.',
+    name: 'Jardin du Sahel',
+    slug: 'jardin-sahel',
+    description: 'Fruits et légumes cultivés dans la région de Dakar.',
     image: '☀️',
     rating: 4.8,
     location: 'Plateau, Dakar',
@@ -59,10 +59,10 @@ const MERCHANTS = [
     banner: '#FF6347',
   },
   {
-    name: 'Épices d\'Orient',
-    slug: 'epices-orient',
-    description: 'Épices rares rapportées par les caravanes de la Route de la Soie. Saveurs d\'ailleurs.',
-    image: '🎪',
+    name: 'Épices Teranga',
+    slug: 'epices-teranga',
+    description: 'Épices et mélanges traditionnels sénégalais.',
+    image: '🌶️',
     rating: 4.6,
     location: 'Sandaga, Dakar',
     address: 'Marché Sandaga, Dakar',
@@ -72,10 +72,10 @@ const MERCHANTS = [
     banner: '#FF8C00',
   },
   {
-    name: 'Rucher du Moine',
-    slug: 'rucher-moine',
-    description: 'Miel récolté par les moines de l\'abbaye depuis des siècles. Tradition et pureté.',
-    image: '⛪',
+    name: 'Rucher du Saloum',
+    slug: 'rucher-saloum',
+    description: 'Miel naturel récolté dans la région du Sine-Saloum.',
+    image: '🍯',
     rating: 4.9,
     location: 'Médina, Dakar',
     address: '22 Boulevard de la Médina, Dakar',
@@ -85,10 +85,10 @@ const MERCHANTS = [
     banner: '#DAA520',
   },
   {
-    name: 'Fromagerie du Comte',
-    slug: 'fromagerie-comte',
-    description: 'Fromages affinés dans les caves du château. Le goût authentique de notre terroir.',
-    image: '🏔️',
+    name: 'Fromagerie Ndar',
+    slug: 'fromagerie-ndar',
+    description: 'Fromages locaux et importés, affinés avec soin.',
+    image: '🧀',
     rating: 4.8,
     location: 'Fann, Dakar',
     address: '30 Rue Carnot, Dakar',
@@ -98,10 +98,10 @@ const MERCHANTS = [
     banner: '#FFD700',
   },
   {
-    name: 'Boulangerie Royal',
-    slug: 'boulangerie-royal',
-    description: 'Le pain du roi, cuit dans les fours séculaires. Pâtisseries dignes des banquets.',
-    image: '👑',
+    name: 'Boulangerie Touba',
+    slug: 'boulangerie-touba',
+    description: 'Pains et pâtisseries traditionnels sénégalais.',
+    image: '🍞',
     rating: 4.7,
     location: 'Point E, Dakar',
     address: '15 Rue de Point E, Dakar',
@@ -111,23 +111,23 @@ const MERCHANTS = [
     banner: '#D2691E',
   },
   {
-    name: 'Cave du Château',
-    slug: 'cave-chateau',
-    description: 'Vins fins sélectionnés parmi les meilleurs crus du royaume. Dégustation royale.',
+    name: 'Cave Dakar',
+    slug: 'cave-dakar',
+    description: 'Boissons, jus naturels et sélections importées.',
     image: '🍷',
     rating: 4.9,
     location: 'Mermoz, Dakar',
     address: '7 Rue Mermoz, Dakar',
     latitude: 14.6990,
     longitude: -17.4730,
-    specialty: 'Vins & Spiritueux',
+    specialty: 'Boissons & Jus',
     banner: '#722F37',
   },
   {
-    name: 'Herboristerie de la Reine',
-    slug: 'herboristerie-reine',
-    description: 'Herbes médicinales et aromatiques choisies par la reine elle-même. Sagesse ancestrale.',
-    image: '👸',
+    name: 'Herboristerie Khady',
+    slug: 'herboristerie-khady',
+    description: 'Herbes médicinales et aromatiques traditionnelles.',
+    image: '🌿',
     rating: 4.5,
     location: 'Grand Yoff, Dakar',
     address: '50 Avenue Cheikh Anta Diop, Dakar',
@@ -137,9 +137,9 @@ const MERCHANTS = [
     banner: '#3CB371',
   },
   {
-    name: 'Orangerie du Prince',
-    slug: 'orangerie-prince',
-    description: 'Agrumes rares cultivés dans les serres chauffées du prince. Fraîcheur garantie.',
+    name: 'Orangerie Casamance',
+    slug: 'orangerie-casamance',
+    description: 'Agrumes frais de Casamance et produits tropicaux.',
     image: '🍊',
     rating: 4.6,
     location: 'Ouakam, Dakar',
@@ -163,128 +163,96 @@ interface ProductSeed {
   merchantSlug: string
 }
 
+// All prices in FCFA
 const PRODUCTS: ProductSeed[] = [
-  // === VIANDES (Maison de Beaumont) ===
-  { name: 'Bœuf Angus Premium', description: 'Pièce de bœuf Angus maturée 28 jours, tendre et savoureuse', price: 34.90, unit: 'kg', image: '🥩', inStock: true, featured: true, categorySlug: 'viandes', merchantSlug: 'maison-beaumont' },
-  { name: 'Agneau de Pré-Salé', description: 'Agneau élevé sur les prés salés de la côte, goût unique et délicat', price: 42.50, unit: 'kg', image: '🍖', inStock: true, featured: true, categorySlug: 'viandes', merchantSlug: 'maison-beaumont' },
-  { name: 'Porc Ibérique', description: 'Porc ibérique de bellota, la noblesse de la charcuterie', price: 29.90, unit: 'kg', image: '🥓', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'maison-beaumont' },
-  { name: 'Veau Fermier', description: 'Veau élevé en plein air, viande tendre et fondante', price: 38.00, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'maison-beaumont' },
-  { name: 'Saucisse de Toulouse', description: 'Saucisse artisanale aux herbes de Provence', price: 12.90, unit: 'kg', image: '🌭', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'maison-beaumont' },
+  // === VIANDES (Boucherie Al Baraka) ===
+  { name: 'Bœuf Premium', description: 'Viande bovine de première qualité, fraîcheur du jour', price: 6500, unit: 'kg', image: '🥩', inStock: true, featured: true, categorySlug: 'viandes', merchantSlug: 'boucherie-albaraka' },
+  { name: 'Agneau Entier', description: 'Agneau frais, idéal pour les grandes occasions', price: 8500, unit: 'kg', image: '🍖', inStock: true, featured: true, categorySlug: 'viandes', merchantSlug: 'boucherie-albaraka' },
+  { name: 'Mouton Thieboudienne', description: 'Mouton coupé pour thieboudienne, portions généreuses', price: 5500, unit: 'kg', image: '🥓', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boucherie-albaraka' },
+  { name: 'Veau Fermier', description: 'Veau de qualité, tendre et savoureux', price: 7500, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boucherie-albaraka' },
+  { name: 'Dibi Chèvre', description: 'Chèvre pour dibi, coupure spéciale grillade', price: 4500, unit: 'kg', image: '🍖', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boucherie-albaraka' },
 
-  // === VOLAILLES (Maison de Beaumont) ===
-  { name: 'Poulet de Bresse AOP', description: 'Le roi des poulets, élevé en liberté dans la Bresse', price: 24.90, unit: 'pièce', image: '🐔', inStock: true, featured: true, categorySlug: 'volailles', merchantSlug: 'maison-beaumont' },
-  { name: 'Canard Entier', description: 'Canard de Challans, chair fine et goûteuse', price: 19.90, unit: 'pièce', image: '🦆', inStock: true, featured: false, categorySlug: 'volailles', merchantSlug: 'maison-beaumont' },
-  { name: 'Caille Dorée', description: 'Caille fermière rôtie, délice de la table royale', price: 8.90, unit: 'pièce', image: '🐦', inStock: true, featured: false, categorySlug: 'volailles', merchantSlug: 'maison-beaumont' },
+  // === VOLAILLES (Boucherie Al Baraka) ===
+  { name: 'Poulet Fermier', description: 'Poulet fermier élevé en liberté', price: 3500, unit: 'pièce', image: '🐔', inStock: true, featured: true, categorySlug: 'volailles', merchantSlug: 'boucherie-albaraka' },
+  { name: 'Pintade', description: 'Pintade fraîche, goût authentique', price: 5000, unit: 'pièce', image: '🐦', inStock: true, featured: false, categorySlug: 'volailles', merchantSlug: 'boucherie-albaraka' },
 
-  // === POISSONS (Poissonnerie du Dauphin) ===
-  { name: 'Saumon Sauvage d\'Alaska', description: 'Saumon sauvage pêché dans les eaux glacées d\'Alaska', price: 32.90, unit: 'kg', image: '🐠', inStock: true, featured: true, categorySlug: 'poissons', merchantSlug: 'poissonnerie-dauphin' },
-  { name: 'Bar de Ligne', description: 'Bar pêché à la ligne, fraîcheur garantie du jour', price: 28.50, unit: 'kg', image: '🐟', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'poissonnerie-dauphin' },
-  { name: 'Sole Meunière', description: 'Sole fraîche, parfaite pour une préparation meunière', price: 36.00, unit: 'kg', image: '🐟', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'poissonnerie-dauphin' },
-  { name: 'Huîtres Spéciales', description: 'Huîtres spéciales de la côte, charnues et iodées', price: 18.90, unit: 'douzaine', image: '🦪', inStock: true, featured: true, categorySlug: 'poissons', merchantSlug: 'poissonnerie-dauphin' },
-  { name: 'Crevettes Roses', description: 'Crevettes roses de Méditerranée, tendres et sucrées', price: 22.50, unit: 'kg', image: '🦐', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'poissonnerie-dauphin' },
+  // === POISSONS (Poissonnerie Ndiagane) ===
+  { name: 'Thiof (Mérou)', description: 'Thiof frais pêché du jour, le poisson roi du Sénégal', price: 8000, unit: 'kg', image: '🐠', inStock: true, featured: true, categorySlug: 'poissons', merchantSlug: 'poissonnerie-ndiagane' },
+  { name: 'Dorade Royale', description: 'Dorade fraîche, parfaite pour le grillage', price: 5500, unit: 'kg', image: '🐟', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'poissonnerie-ndiagane' },
+  { name: 'Carpe', description: 'Carpe fraîche du fleuve Sénégal', price: 3000, unit: 'kg', image: '🐟', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'poissonnerie-ndiagane' },
+  { name: 'Huîtres Mangroves', description: 'Huîtres des mangroves de Casamance', price: 5000, unit: 'douzaine', image: '🦪', inStock: true, featured: true, categorySlug: 'poissons', merchantSlug: 'poissonnerie-ndiagane' },
+  { name: 'Crevettes Tigre', description: 'Crevettes tigre géantes, fraîches du jour', price: 12000, unit: 'kg', image: '🦐', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'poissonnerie-ndiagane' },
 
-  // === FRUITS (Jardins du Soleil) ===
-  { name: 'Pommes Reinettes', description: 'Pommes reinettes grises du verger, croquantes et acidulées', price: 4.90, unit: 'kg', image: '🍎', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'jardins-soleil' },
-  { name: 'Fraises Gariguette', description: 'Fraises Gariguette, les plus parfumées du royaume', price: 8.90, unit: 'barquette', image: '🍓', inStock: true, featured: true, categorySlug: 'fruits', merchantSlug: 'jardins-soleil' },
-  { name: 'Raisin Muscat', description: 'Raisin muscat doré, sucré comme le miel', price: 6.50, unit: 'kg', image: '🍇', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'jardins-soleil' },
-  { name: 'Pêches de Vigne', description: 'Pêches de vigne rouges, parfumées et juteuses', price: 7.90, unit: 'kg', image: '🍑', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'jardins-soleil' },
-  { name: 'Cerises Burlat', description: 'Cerises Burlat charnues, la reine des fruits rouges', price: 9.90, unit: 'kg', image: '🍒', inStock: true, featured: true, categorySlug: 'fruits', merchantSlug: 'jardins-soleil' },
+  // === FRUITS (Jardin du Sahel) ===
+  { name: 'Mangues Kent', description: 'Mangues Kent juteuses du Casamance', price: 1500, unit: 'kg', image: '🥭', inStock: true, featured: true, categorySlug: 'fruits', merchantSlug: 'jardin-sahel' },
+  { name: 'Papayes', description: 'Papayes mûres et sucrées', price: 800, unit: 'pièce', image: '🍈', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'jardin-sahel' },
+  { name: 'Bananes Plantain', description: 'Bananes plantain pour friture ou purée', price: 1000, unit: 'régime', image: '🍌', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'jardin-sahel' },
+  { name: 'Oranges Sénégal', description: 'Oranges juteuses de la région de Thiès', price: 1200, unit: 'kg', image: '🍊', inStock: true, featured: true, categorySlug: 'fruits', merchantSlug: 'jardin-sahel' },
+  { name: 'Ananas', description: 'Ananas frais de la Petite Côte', price: 1500, unit: 'pièce', image: '🍍', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'jardin-sahel' },
 
-  // === LÉGUMES (Jardins du Soleil) ===
-  { name: 'Asperges Vertes', description: 'Asperges vertes des jardins, tendres et savoureuses', price: 12.90, unit: 'botte', image: '🥦', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'jardins-soleil' },
-  { name: 'Tomates Anciennes', description: 'Coffret de tomates anciennes multicolores', price: 5.90, unit: 'kg', image: '🍅', inStock: true, featured: true, categorySlug: 'legumes', merchantSlug: 'jardins-soleil' },
-  { name: 'Artichauts Violet', description: 'Artichauts violets de Provence, tendres et fondants', price: 3.50, unit: 'pièce', image: '🥬', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'jardins-soleil' },
-  { name: 'Champignons de Paris', description: 'Champignons frais de la cave royale', price: 4.50, unit: 'kg', image: '🍄', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'jardins-soleil' },
+  // === LÉGUMES (Jardin du Sahel) ===
+  { name: 'Tomates', description: 'Tomates fraîches et charnues', price: 800, unit: 'kg', image: '🍅', inStock: true, featured: true, categorySlug: 'legumes', merchantSlug: 'jardin-sahel' },
+  { name: 'Oignons', description: 'Oignons violets de la région', price: 600, unit: 'kg', image: '🧅', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'jardin-sahel' },
+  { name: 'Manioc', description: 'Manioc frais, base de la cuisine sénégalaise', price: 500, unit: 'kg', image: '🥬', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'jardin-sahel' },
+  { name: 'Niébé', description: 'Niébé (haricots) de qualité', price: 1200, unit: 'kg', image: '🫘', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'jardin-sahel' },
 
-  // === ÉPICES (Épices d'Orient) ===
-  { name: 'Safran du Kashmir', description: 'Safran pur du Kashmir, l\'or rouge des épices', price: 89.00, unit: '5g', image: '✨', inStock: true, featured: true, categorySlug: 'epices', merchantSlug: 'epices-orient' },
-  { name: 'Poivre de Kampot', description: 'Poivre noir de Kampot, le meilleur poivre du monde', price: 24.90, unit: '50g', image: '🌶️', inStock: true, featured: true, categorySlug: 'epices', merchantSlug: 'epices-orient' },
-  { name: 'Cannelle de Ceylan', description: 'Bâtons de cannelle de Ceylan, arôme doux et chaud', price: 12.50, unit: '50g', image: '🪵', inStock: true, featured: false, categorySlug: 'epices', merchantSlug: 'epices-orient' },
-  { name: 'Ras el Hanout', description: 'Mélange royal de 30 épices, secret des marchands', price: 18.90, unit: '50g', image: '🏺', inStock: true, featured: true, categorySlug: 'epices', merchantSlug: 'epices-orient' },
-  { name: 'Vanille de Madagascar', description: 'Gousses de vanille Bourbon, charnues et parfumées', price: 34.90, unit: '5 gousses', image: '🌿', inStock: true, featured: false, categorySlug: 'epices', merchantSlug: 'epices-orient' },
-  { name: 'Cardamome Verte', description: 'Cardamome verte entière, la reine des épices', price: 15.90, unit: '50g', image: '🫚', inStock: true, featured: false, categorySlug: 'epices', merchantSlug: 'epices-orient' },
+  // === ÉPICES (Épices Teranga) ===
+  { name: 'Poivre de Penja', description: 'Poivre noir de Penja, le meilleur d\'Afrique', price: 8000, unit: '100g', image: '🌶️', inStock: true, featured: true, categorySlug: 'epices', merchantSlug: 'epices-teranga' },
+  { name: 'Mélange Kolda', description: 'Mélange d\'épices traditionnel de Kolda', price: 3500, unit: '100g', image: '🏺', inStock: true, featured: true, categorySlug: 'epices', merchantSlug: 'epices-teranga' },
+  { name: 'Piment Capsicum', description: 'Piment fort séché, pour les amateurs', price: 2000, unit: '50g', image: '🌶️', inStock: true, featured: false, categorySlug: 'epices', merchantSlug: 'epices-teranga' },
+  { name: 'Sel de Guérande', description: 'Sel fin importé, qualité supérieure', price: 1500, unit: '500g', image: '🧂', inStock: true, featured: false, categorySlug: 'epices', merchantSlug: 'epices-teranga' },
 
-  // === MIEL & CONFITURES (Rucher du Moine) ===
-  { name: 'Miel de Lavande', description: 'Miel de lavande de l\'abbaye, doux et parfumé', price: 14.90, unit: 'pot 250g', image: '🍯', inStock: true, featured: true, categorySlug: 'miel-confitures', merchantSlug: 'rucher-moine' },
-  { name: 'Miel d\'Acacia', description: 'Miel d\'acacia cristallin, clair et délicat', price: 12.50, unit: 'pot 250g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'rucher-moine' },
-  { name: 'Miel de Châtaignier', description: 'Miel de châtaignier au goût boisé et intense', price: 13.90, unit: 'pot 250g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'rucher-moine' },
-  { name: 'Confiture de Figues', description: 'Confiture artisanale de figues violettes', price: 9.90, unit: 'pot 220g', image: '🫙', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'rucher-moine' },
-  { name: 'Confiture de Fraises', description: 'Confiture royale aux fraises des bois', price: 8.90, unit: 'pot 220g', image: '🫙', inStock: true, featured: true, categorySlug: 'miel-confitures', merchantSlug: 'rucher-moine' },
+  // === MIEL (Rucher du Saloum) ===
+  { name: 'Miel du Saloum', description: 'Miel naturel du Sine-Saloum, pur et parfumé', price: 5000, unit: 'pot 500g', image: '🍯', inStock: true, featured: true, categorySlug: 'miel-confitures', merchantSlug: 'rucher-saloum' },
+  { name: 'Miel de Palme', description: 'Miel de palme traditionnel', price: 3500, unit: 'pot 500g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'rucher-saloum' },
+  { name: 'Confiture de Baobab', description: 'Confiture artisanale au fruit de baobab', price: 2500, unit: 'pot 300g', image: '🫙', inStock: true, featured: true, categorySlug: 'miel-confitures', merchantSlug: 'rucher-saloum' },
 
-  // === FROMAGES (Fromagerie du Comte) ===
-  { name: 'Comté 24 Mois', description: 'Comté affiné 24 mois dans les caves du fort', price: 19.90, unit: 'kg', image: '🧀', inStock: true, featured: true, categorySlug: 'fromages', merchantSlug: 'fromagerie-comte' },
-  { name: 'Brie de Meaux', description: 'Le roi des fromages, crémeux et parfumé', price: 15.90, unit: 'kg', image: '🧀', inStock: true, featured: true, categorySlug: 'fromages', merchantSlug: 'fromagerie-comte' },
-  { name: 'Roquefort Société', description: 'Roquefort authentique, bleu intense et persillé', price: 24.50, unit: 'kg', image: '🧀', inStock: true, featured: false, categorySlug: 'fromages', merchantSlug: 'fromagerie-comte' },
-  { name: 'Chèvre Frais', description: 'Fromage de chèvre frais du Poitou, onctueux', price: 8.90, unit: 'pièce', image: '🧀', inStock: true, featured: false, categorySlug: 'fromages', merchantSlug: 'fromagerie-comte' },
-  { name: 'Camembert de Normandie', description: 'Camembert au lait cru, véritable normand', price: 6.90, unit: 'pièce', image: '🧀', inStock: true, featured: false, categorySlug: 'fromages', merchantSlug: 'fromagerie-comte' },
+  // === FROMAGES (Fromagerie Ndar) ===
+  { name: 'Fromage Wagashi', description: 'Fromage traditionnel du Sénégal', price: 2000, unit: 'pièce', image: '🧀', inStock: true, featured: true, categorySlug: 'fromages', merchantSlug: 'fromagerie-ndar' },
+  { name: 'Fromage Frais', description: 'Fromage frais local, crémeux', price: 1500, unit: 'pièce', image: '🧀', inStock: true, featured: false, categorySlug: 'fromages', merchantSlug: 'fromagerie-ndar' },
 
-  // === BOULANGERIE (Boulangerie Royal) ===
-  { name: 'Pain de Campagne', description: 'Pain de campagne au levain naturel, croustillant', price: 4.50, unit: 'pièce', image: '🍞', inStock: true, featured: true, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-royal' },
-  { name: 'Baguette Tradition', description: 'Baguette tradition au goût incomparable', price: 1.90, unit: 'pièce', image: '🥖', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-royal' },
-  { name: 'Croissant Pur Beurre', description: 'Croissant au beurre AOP Charentes-Poitou', price: 1.60, unit: 'pièce', image: '🥐', inStock: true, featured: true, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-royal' },
-  { name: 'Pain aux Céréales', description: 'Pain aux 7 céréales, source de bienfaits', price: 5.20, unit: 'pièce', image: '🍞', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-royal' },
-  { name: 'Brioche Tressée', description: 'Brioche tressée dorée, moelleuse et parfumée', price: 6.90, unit: 'pièce', image: '🥐', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-royal' },
+  // === BOULANGERIE (Boulangerie Touba) ===
+  { name: 'Pain Complet', description: 'Pain complet au levain naturel', price: 300, unit: 'pièce', image: '🍞', inStock: true, featured: true, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-touba' },
+  { name: 'Baguette', description: 'Baguette traditionnelle croustillante', price: 150, unit: 'pièce', image: '🥖', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-touba' },
+  { name: 'Croissant', description: 'Croissant au beurre, doré et croustillant', price: 200, unit: 'pièce', image: '🥐', inStock: true, featured: true, categorySlug: 'boulangerie', merchantSlug: 'boulangerie-touba' },
 
-  // === VINS & BOISSONS (Cave du Château) ===
-  { name: 'Château Margaux 2018', description: 'Grand cru classé, l\'élégance à l\'état pur', price: 189.00, unit: 'bouteille', image: '🍷', inStock: true, featured: true, categorySlug: 'vins-boissons', merchantSlug: 'cave-chateau' },
-  { name: 'Bourgogne Pinot Noir', description: 'Pinot noir de Bourgogne, fin et fruité', price: 29.90, unit: 'bouteille', image: '🍷', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'cave-chateau' },
-  { name: 'Champagne Brut Millésimé', description: 'Champagne d\'exception pour les grandes occasions', price: 59.90, unit: 'bouteille', image: '🥂', inStock: true, featured: true, categorySlug: 'vins-boissons', merchantSlug: 'cave-chateau' },
-  { name: 'Cidre Artisanal', description: 'Cidre brut fermier, pétillant naturel', price: 6.90, unit: 'bouteille', image: '🍹', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'cave-chateau' },
-  { name: 'Elixir Royal', description: 'Liqueur secrète aux herbes, recette ancestrale', price: 34.90, unit: 'bouteille', image: '⚗️', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'cave-chateau' },
+  // === BOISSONS (Cave Dakar) ===
+  { name: 'Jus de Bissap', description: 'Jus de bissap frais maison', price: 500, unit: 'bouteille 1L', image: '🍷', inStock: true, featured: true, categorySlug: 'boissons', merchantSlug: 'cave-dakar' },
+  { name: 'Jus de Bouye', description: 'Jus de bouye (pain de singe) traditionnel', price: 600, unit: 'bouteille 1L', image: '🍹', inStock: true, featured: true, categorySlug: 'boissons', merchantSlug: 'cave-dakar' },
+  { name: 'Jus de Gingembre', description: 'Jus de gingembre pimenté, rafraîchissant', price: 500, unit: 'bouteille 1L', image: '🥤', inStock: true, featured: false, categorySlug: 'boissons', merchantSlug: 'cave-dakar' },
+  { name: 'Ataya (Thé)', description: 'Thé à la menthe traditionnel sénégalais', price: 300, unit: 'sachet', image: '🍵', inStock: true, featured: false, categorySlug: 'boissons', merchantSlug: 'cave-dakar' },
 
-  // === HERBES (Herboristerie de la Reine) ===
-  { name: 'Bouquet Garni Royal', description: 'Mélange de thym, laurier et romarin du jardin', price: 3.90, unit: 'bouquet', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'herboristerie-reine' },
-  { name: 'Herbes de Provence', description: 'Mélange authentique de 6 herbes provençales', price: 5.90, unit: 'sachet 30g', image: '🌿', inStock: true, featured: true, categorySlug: 'herbes', merchantSlug: 'herboristerie-reine' },
-  { name: 'Basilic Grand Vert', description: 'Basilic frais parfumé, idéal pour le pesto', price: 2.50, unit: 'botte', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'herboristerie-reine' },
-  { name: 'Sauge Officinale', description: 'Sauge aux vertus médicinales, récoltée à la main', price: 4.50, unit: 'sachet 20g', image: '🍃', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'herboristerie-reine' },
+  // === HERBES (Herboristerie Khady) ===
+  { name: 'Kinkéliba', description: 'Kinkéliba séché, plante médicinale traditionnelle', price: 1000, unit: 'sachet 50g', image: '🌿', inStock: true, featured: true, categorySlug: 'herbes', merchantSlug: 'herboristerie-khady' },
+  { name: 'Moringa', description: 'Moringa en poudre, super-aliment sénégalais', price: 2500, unit: 'sachet 100g', image: '🍃', inStock: true, featured: true, categorySlug: 'herbes', merchantSlug: 'herboristerie-khady' },
+  { name: 'Bouquet Garni', description: 'Mélange d\'herbes fraîches pour la cuisine', price: 500, unit: 'bouquet', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'herboristerie-khady' },
 
-  // === CITRONS & AGRUMES (Orangerie du Prince) ===
-  { name: 'Citrons de Menton', description: 'Citrons de Menton IGP, doux et parfumés', price: 6.90, unit: 'kg', image: '🍋', inStock: true, featured: true, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
-  { name: 'Oranges Sanguines', description: 'Oranges sanguines de Sicile, juteuses et colorées', price: 5.50, unit: 'kg', image: '🍊', inStock: true, featured: true, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
-  { name: 'Pamplemousse Rose', description: 'Pamplemousse rose de Floride, sucré et amer', price: 3.90, unit: 'kg', image: '🍇', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
-  { name: 'Cédrat Confit', description: 'Cédrat confit de Corse, délice des pâtissiers', price: 14.90, unit: 'boîte', image: '🍈', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-prince' },
+  // === CITRONS (Orangerie Casamance) ===
+  { name: 'Citrons Verts', description: 'Citrons verts frais pour la cuisine et les jus', price: 800, unit: 'kg', image: '🍋', inStock: true, featured: true, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-casamance' },
+  { name: 'Tangerines', description: 'Tangerines de Casamance, sucrées et juteuses', price: 1500, unit: 'kg', image: '🍊', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'orangerie-casamance' },
 
-  // === Cross-merchant products (same category, different prices - COMPETITION) ===
-  // Viandes at other merchants
-  { name: 'Bœuf Angus Premium', description: 'Viande bovine de qualité supérieure, maturée 21 jours', price: 31.50, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'jardins-soleil' },
-  { name: 'Bœuf Angus Premium', description: 'Bœuf Angus maturé 30 jours, sélection spéciale', price: 36.50, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boulangerie-royal' },
-  { name: 'Saucisson Sec', description: 'Saucisson sec artisanal aux noisettes', price: 9.90, unit: 'pièce', image: '🌭', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boulangerie-royal' },
+  // === Cross-merchant COMPETITION products (same product, different prices) ===
+  { name: 'Bœuf Premium', description: 'Viande bovine de qualité, maturée', price: 6000, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'jardin-sahel' },
+  { name: 'Bœuf Premium', description: 'Bœuf de première qualité, coupé sur commande', price: 7000, unit: 'kg', image: '🥩', inStock: true, featured: false, categorySlug: 'viandes', merchantSlug: 'boulangerie-touba' },
 
-  // Poissons at other merchants
-  { name: 'Truite Fumée', description: 'Truite fumée au bois de hêtre, tranchée finement', price: 16.90, unit: '200g', image: '🐟', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'cave-chateau' },
-  { name: 'Saumon Sauvage d\'Alaska', description: 'Saumon sauvage entier, fraîcheur du jour', price: 35.50, unit: 'kg', image: '🐠', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'rucher-moine' },
+  { name: 'Thiof (Mérou)', description: 'Thiof frais du jour, qualité supérieure', price: 9000, unit: 'kg', image: '🐠', inStock: true, featured: false, categorySlug: 'poissons', merchantSlug: 'cave-dakar' },
 
-  // Fruits at other merchants
-  { name: 'Framboises Fraîches', description: 'Framboises charnues du verger de l\'abbaye', price: 7.50, unit: 'barquette', image: '🫐', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'rucher-moine' },
-  { name: 'Fraises Gariguette', description: 'Fraises Gariguette bio, cultivées au soleil', price: 9.50, unit: 'barquette', image: '🍓', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'epices-orient' },
-  { name: 'Cerises Burlat', description: 'Cerises Burlat première qualité, extra charnues', price: 11.50, unit: 'kg', image: '🍒', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'orangerie-prince' },
+  { name: 'Mangues Kent', description: 'Mangues Kent bio, très juteuses', price: 1800, unit: 'kg', image: '🥭', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'rucher-saloum' },
+  { name: 'Oranges Sénégal', description: 'Oranges douces de Thiès', price: 1000, unit: 'kg', image: '🍊', inStock: true, featured: false, categorySlug: 'fruits', merchantSlug: 'epices-teranga' },
 
-  // Miel from other merchants
-  { name: 'Miel de Montagne', description: 'Miel de montagne toutes fleurs, récolté à 1500m', price: 16.90, unit: 'pot 250g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'jardins-soleil' },
-  { name: 'Miel de Lavande', description: 'Miel de lavande artisanal, doux et floral', price: 15.50, unit: 'pot 250g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'herboristerie-reine' },
+  { name: 'Miel du Saloum', description: 'Miel naturel pur, récolté artisanalement', price: 5500, unit: 'pot 500g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'jardin-sahel' },
+  { name: 'Miel de Palme', description: 'Miel de palme de la Casamance', price: 4000, unit: 'pot 500g', image: '🍯', inStock: true, featured: false, categorySlug: 'miel-confitures', merchantSlug: 'herboristerie-khady' },
 
-  // Fromage at other merchants
-  { name: 'Brie aux Truffes', description: 'Brie affiné aux truffes noires du Périgord', price: 35.90, unit: 'pièce', image: '🧀', inStock: true, featured: true, categorySlug: 'fromages', merchantSlug: 'cave-chateau' },
-  { name: 'Comté 24 Mois', description: 'Comté extra 24 mois, affinage exceptionnel', price: 22.50, unit: 'kg', image: '🧀', inStock: true, featured: false, categorySlug: 'fromages', merchantSlug: 'maison-beaumont' },
-
-  // Herbes at other merchants
-  { name: 'Romarin Frais', description: 'Romarin aromatique du jardin du château', price: 2.90, unit: 'botte', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'jardins-soleil' },
-  { name: 'Herbes de Provence', description: 'Mélange d\'herbes de Provence séchées, parfumées', price: 4.90, unit: 'sachet 30g', image: '🌿', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'jardins-soleil' },
-
-  // Citrons at other merchants
-  { name: 'Citrons de Menton', description: 'Citrons bio pour infusions et décoctions', price: 7.50, unit: 'kg', image: '🍋', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'herboristerie-reine' },
-
-  // Boulangerie at other merchants
-  { name: 'Pain de Seigle', description: 'Pain de seigle au levain, tradition paysanne', price: 3.90, unit: 'pièce', image: '🍞', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'maison-beaumont' },
-
-  // Vins at other merchants
-  { name: 'Vin Rouge Maison', description: 'Cuvée spéciale de la maison, charpentée', price: 14.90, unit: 'bouteille', image: '🍷', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'maison-beaumont' },
-  { name: 'Champagne Brut Millésimé', description: 'Champagne brut prestige, bulles fines', price: 65.00, unit: 'bouteille', image: '🥂', inStock: true, featured: false, categorySlug: 'vins-boissons', merchantSlug: 'fromagerie-comte' },
+  { name: 'Tomates', description: 'Tomates fraîches du marché', price: 700, unit: 'kg', image: '🍅', inStock: true, featured: false, categorySlug: 'legumes', merchantSlug: 'boucherie-albaraka' },
+  { name: 'Jus de Bissap', description: 'Bissap rouge frais et naturel', price: 450, unit: 'bouteille 1L', image: '🍷', inStock: true, featured: false, categorySlug: 'boissons', merchantSlug: 'herboristerie-khady' },
+  { name: 'Jus de Bouye', description: 'Bouye traditionnel, goût authentique', price: 500, unit: 'bouteille 1L', image: '🍹', inStock: true, featured: false, categorySlug: 'boissons', merchantSlug: 'orangerie-casamance' },
+  { name: 'Citrons Verts', description: 'Citrons verts pour assaisonnement', price: 1000, unit: 'kg', image: '🍋', inStock: true, featured: false, categorySlug: 'citrons-agrumes', merchantSlug: 'herboristerie-khady' },
+  { name: 'Baguette', description: 'Baguette tradition, croustillante', price: 200, unit: 'pièce', image: '🥖', inStock: true, featured: false, categorySlug: 'boulangerie', merchantSlug: 'cave-dakar' },
+  { name: 'Moringa', description: 'Poudre de moringa bio', price: 3000, unit: 'sachet 100g', image: '🍃', inStock: true, featured: false, categorySlug: 'herbes', merchantSlug: 'jardin-sahel' },
 ]
 
 export async function POST() {
   try {
-    // Check if already seeded
     const existingCategories = await db.category.count()
     if (existingCategories > 0) {
       return NextResponse.json({ message: 'Database already seeded', count: { categories: existingCategories } })
@@ -297,7 +265,7 @@ export async function POST() {
       categoryMap[cat.slug] = created.id
     }
 
-    // Create merchants with coordinates
+    // Create merchants
     const merchantMap: Record<string, string> = {}
     for (const merch of MERCHANTS) {
       const created = await db.merchant.create({ data: merch })
@@ -327,13 +295,13 @@ export async function POST() {
       productCount++
     }
 
-    // Create test merchant accounts with email
+    // Create test vendor accounts with subscriptions
     const testAccounts = [
-      { email: 'beaumont@marche.sn', password: 'marchand1', name: 'Maison de Beaumont', merchantSlug: 'maison-beaumont' },
-      { email: 'dauphin@marche.sn', password: 'marchand2', name: 'Poissonnerie du Dauphin', merchantSlug: 'poissonnerie-dauphin' },
-      { email: 'soleil@marche.sn', password: 'marchand3', name: 'Jardins du Soleil', merchantSlug: 'jardins-soleil' },
-      { email: 'chateau@marche.sn', password: 'marchand4', name: 'Cave du Château', merchantSlug: 'cave-chateau' },
-      { email: 'moine@marche.sn', password: 'marchand5', name: 'Rucher du Moine', merchantSlug: 'rucher-moine' },
+      { email: 'albaraka@marche.sn', password: 'vendeur1', name: 'Boucherie Al Baraka', merchantSlug: 'boucherie-albaraka', plan: 'premium_plus' },
+      { email: 'ndiagane@marche.sn', password: 'vendeur2', name: 'Poissonnerie Ndiagane', merchantSlug: 'poissonnerie-ndiagane', plan: 'premium' },
+      { email: 'sahel@marche.sn', password: 'vendeur3', name: 'Jardin du Sahel', merchantSlug: 'jardin-sahel', plan: 'gratuit' },
+      { email: 'teranga@marche.sn', password: 'vendeur4', name: 'Épices Teranga', merchantSlug: 'epices-teranga', plan: 'premium' },
+      { email: 'saloum@marche.sn', password: 'vendeur5', name: 'Rucher du Saloum', merchantSlug: 'rucher-saloum', plan: 'gratuit' },
     ]
 
     for (const account of testAccounts) {
@@ -341,7 +309,7 @@ export async function POST() {
       if (!merchantId) continue
 
       const hashedPassword = await hash(account.password, 12)
-      await db.user.create({
+      const user = await db.user.create({
         data: {
           email: account.email,
           password: hashedPassword,
@@ -349,10 +317,19 @@ export async function POST() {
           merchantId,
         },
       })
+
+      // Create subscription
+      await db.subscription.create({
+        data: {
+          userId: user.id,
+          plan: account.plan,
+          active: true,
+        },
+      })
     }
 
     return NextResponse.json({
-      message: 'Royal Market seeded successfully!',
+      message: 'Marché Royal ensemencé avec succès !',
       count: {
         categories: CATEGORIES.length,
         merchants: MERCHANTS.length,

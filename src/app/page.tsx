@@ -25,6 +25,12 @@ import {
   TrendingDown,
   Trophy,
   Mail,
+  Plus,
+  Trash2,
+  Crown,
+  Diamond,
+  Zap,
+  Check,
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -110,7 +116,7 @@ interface FavoriteItem {
   product: Product
 }
 
-// ─── Distance Calculator ─────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000 // Earth's radius in meters
@@ -131,6 +137,42 @@ function formatDistance(meters: number): string {
     return `${Math.round(meters)} m`
   }
   return `${(meters / 1000).toFixed(1)} km`
+}
+
+function formatPrice(price: number): string {
+  return price.toLocaleString('fr-FR') + ' FCFA'
+}
+
+function getPlanBadge(plan: string) {
+  if (plan === 'premium_plus') {
+    return (
+      <Badge className="bg-gradient-to-r from-[#DAA520] to-[#FFD700] text-[#3D1F1A] border-0 text-[10px] px-1.5 py-0 ml-1 font-semibold">
+        <Diamond className="size-3 mr-0.5" />
+        Premium+
+      </Badge>
+    )
+  }
+  if (plan === 'premium') {
+    return (
+      <Badge className="bg-gradient-to-r from-[#8B4513] to-[#A0522D] text-[#FFD700] border-0 text-[10px] px-1.5 py-0 ml-1 font-semibold">
+        <Crown className="size-3 mr-0.5" />
+        Premium
+      </Badge>
+    )
+  }
+  return null
+}
+
+function getPlanLimit(plan: string): number {
+  if (plan === 'premium_plus') return Infinity
+  if (plan === 'premium') return 50
+  return 5
+}
+
+function getPlanLabel(plan: string): string {
+  if (plan === 'premium_plus') return 'Premium+'
+  if (plan === 'premium') return 'Premium'
+  return 'Gratuit'
 }
 
 // ─── API Fetchers ────────────────────────────────────────────────────────────
@@ -215,6 +257,42 @@ async function updateMerchantProduct(
     body: JSON.stringify({ productId, ...data }),
   })
   if (!res.ok) throw new Error('Failed to update product')
+  return res.json()
+}
+
+async function createMerchantProduct(merchantId: string, data: {
+  name: string; description: string; price: number; unit: string;
+  image: string; categoryId: string; inStock: boolean;
+}): Promise<Product> {
+  const res = await fetch(`/api/merchants/${merchantId}/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to create product')
+  return res.json()
+}
+
+async function deleteMerchantProduct(merchantId: string, productId: string): Promise<void> {
+  const res = await fetch(`/api/merchants/${merchantId}/products?productId=${productId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error('Failed to delete product')
+}
+
+async function subscribePlan(plan: string): Promise<{ plan: string; active: boolean }> {
+  const res = await fetch('/api/subscription', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan }),
+  })
+  if (!res.ok) throw new Error('Failed to subscribe')
+  return res.json()
+}
+
+async function fetchSubscription(): Promise<{ plan: string; active: boolean }> {
+  const res = await fetch('/api/subscription')
+  if (!res.ok) return { plan: 'gratuit', active: false }
   return res.json()
 }
 
@@ -359,10 +437,6 @@ function AuthModal() {
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    signIn('google', { callbackUrl: '/' })
-  }
-
   return (
     <Dialog open={authModalOpen} onOpenChange={(open) => {
       setAuthModalOpen(open)
@@ -499,44 +573,9 @@ function AuthModal() {
               </>
             )}
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-[#DAA520]/20" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#FFF8DC] px-2 text-[#8B4513]/50">ou</span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              onClick={handleGoogleSignIn}
-              className="w-full border-[#DAA520]/30 text-[#8B4513] hover:bg-[#FAEBD7]"
-            >
-              <svg className="mr-2 size-4" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Continuer avec Google
-            </Button>
-
             {authMode === 'login' && (
               <p className="text-center text-xs text-[#8B4513]/50">
-                Comptes test : beaumont@marche.sn / marchand1
+                Compte test : albaraka@marche.sn / vendeur1
               </p>
             )}
           </div>
@@ -550,9 +589,10 @@ function AuthModal() {
 
 function UserMenu() {
   const { data: session } = useSession()
-  const { setAuthModalOpen, setFavoritesOpen, setMerchantDashboardOpen } = useMarketStore()
+  const { setAuthModalOpen, setFavoritesOpen, setMerchantDashboardOpen, setPremiumPlansOpen } = useMarketStore()
   const { toast } = useToast()
   const merchantId = (session?.user as any)?.merchantId
+  const plan = (session?.user as any)?.plan || 'gratuit'
 
   if (!session) {
     return (
@@ -577,12 +617,18 @@ function UserMenu() {
         >
           <User className="size-4" />
           <span className="max-w-[120px] truncate">{session.user.name || 'Utilisateur'}</span>
+          {(plan === 'premium' || plan === 'premium_plus') && (
+            <span className="text-[#DAA520]">
+              {plan === 'premium_plus' ? <Diamond className="size-3" /> : <Crown className="size-3" />}
+            </span>
+          )}
           <ChevronDown className="size-3" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 bg-[#FFF8DC] border-[#DAA520]/30" align="end">
-        <DropdownMenuLabel className="font-[family-name:var(--font-playfair)] text-[#3D1F1A]">
+        <DropdownMenuLabel className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center">
           {session.user.name || 'Utilisateur'}
+          {getPlanBadge(plan)}
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-[#DAA520]/20" />
         <DropdownMenuItem
@@ -593,13 +639,22 @@ function UserMenu() {
           Mes Favoris
         </DropdownMenuItem>
         {merchantId && (
-          <DropdownMenuItem
-            onClick={() => setMerchantDashboardOpen(true)}
-            className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
-          >
-            <Store className="mr-2 size-4" />
-            Mon Échoppe
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem
+              onClick={() => setMerchantDashboardOpen(true)}
+              className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+            >
+              <Store className="mr-2 size-4" />
+              Mon Échoppe
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setPremiumPlansOpen(true)}
+              className="text-[#8B4513] focus:bg-[#FAEBD7] focus:text-[#3D1F1A] cursor-pointer"
+            >
+              <Diamond className="mr-2 size-4 text-[#DAA520]" />
+              Abonnement
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuSeparator className="bg-[#DAA520]/20" />
         <DropdownMenuItem
@@ -614,6 +669,152 @@ function UserMenu() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+// ─── Premium Plans Dialog ────────────────────────────────────────────────────
+
+function PremiumPlansDialog() {
+  const { premiumPlansOpen, setPremiumPlansOpen } = useMarketStore()
+  const { data: session } = useSession()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const currentPlan = (session?.user as any)?.plan || 'gratuit'
+
+  const subscribeMutation = useMutation({
+    mutationFn: (plan: string) => subscribePlan(plan),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['subscription'] })
+      toast({
+        title: 'Abonnement activé !',
+        description: `Votre plan ${data.plan === 'premium_plus' ? 'Premium+' : 'Premium'} est maintenant actif.`,
+      })
+      // Refresh session to get new plan
+      window.location.reload()
+    },
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible de modifier l\'abonnement', variant: 'destructive' })
+    },
+  })
+
+  const plans = [
+    {
+      key: 'gratuit',
+      name: 'Gratuit',
+      price: '0 FCFA',
+      period: '',
+      icon: <Zap className="size-6 text-[#8B4513]/60" />,
+      features: ['5 produits maximum', 'Liste basique', 'Sans badge'],
+      color: '#8B4513',
+      bgColor: '#FAEBD7',
+    },
+    {
+      key: 'premium',
+      name: 'Premium',
+      price: '5 000 FCFA',
+      period: '/mois',
+      icon: <Crown className="size-6 text-[#DAA520]" />,
+      features: ['50 produits maximum', 'Badge ⭐ Premium', 'Statistiques de base', 'Liste améliorée'],
+      color: '#8B4513',
+      bgColor: '#FFF8DC',
+      popular: true,
+    },
+    {
+      key: 'premium_plus',
+      name: 'Premium+',
+      price: '10 000 FCFA',
+      period: '/mois',
+      icon: <Diamond className="size-6 text-[#8B0000]" />,
+      features: ['Produits illimités', 'Produits vedettes', 'Liste prioritaire', 'Statistiques avancées', 'Bannière personnalisée'],
+      color: '#8B0000',
+      bgColor: '#FFF8DC',
+    },
+  ]
+
+  return (
+    <Dialog open={premiumPlansOpen} onOpenChange={setPremiumPlansOpen}>
+      <DialogContent className="sm:max-w-2xl bg-[#FFF8DC] border-[#DAA520]/30 max-h-[85vh]">
+        <DialogHeader>
+          <DialogTitle className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] text-center text-xl">
+            ⚜ Abonnements Marché Royal ⚜
+          </DialogTitle>
+          <DialogDescription className="text-center text-[#8B4513]/70">
+            Choisissez le plan adapté à votre échoppe
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+          {plans.map((plan) => {
+            const isCurrent = currentPlan === plan.key
+            const isDowngrade = (plan.key === 'gratuit' && (currentPlan === 'premium' || currentPlan === 'premium_plus')) ||
+              (plan.key === 'premium' && currentPlan === 'premium_plus')
+
+            return (
+              <div
+                key={plan.key}
+                className={`relative rounded-xl border-2 p-4 transition-all ${
+                  isCurrent
+                    ? 'border-[#DAA520] bg-[#FAEBD7]/50 shadow-lg shadow-[#DAA520]/10'
+                    : plan.popular
+                      ? 'border-[#DAA520]/50 bg-white/50 hover:border-[#DAA520] hover:shadow-md'
+                      : 'border-[#DAA520]/20 bg-white/30 hover:border-[#DAA520]/50 hover:shadow-md'
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-[#DAA520] to-[#FFD700] text-[#3D1F1A] border-0 text-[10px] font-semibold px-2">
+                      Populaire
+                    </Badge>
+                  </div>
+                )}
+
+                <div className="flex flex-col items-center text-center">
+                  <div className="mb-2">{plan.icon}</div>
+                  <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#3D1F1A]">
+                    {plan.name}
+                  </h3>
+                  <div className="mt-1">
+                    <span className="font-[family-name:var(--font-playfair)] text-2xl font-bold" style={{ color: plan.color }}>
+                      {plan.price}
+                    </span>
+                    {plan.period && (
+                      <span className="text-xs text-[#8B4513]/50">{plan.period}</span>
+                    )}
+                  </div>
+
+                  <ul className="mt-4 space-y-2 text-sm text-[#8B4513] w-full">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <Check className="size-3.5 shrink-0" style={{ color: plan.color }} />
+                        <span className="text-left">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className="w-full mt-4"
+                    disabled={isCurrent || subscribeMutation.isPending}
+                    variant={isCurrent ? 'outline' : 'default'}
+                    style={
+                      isCurrent
+                        ? undefined
+                        : { backgroundColor: plan.color, color: '#FFD700' }
+                    }
+                    onClick={() => {
+                      if (plan.key !== 'gratuit') {
+                        subscribeMutation.mutate(plan.key)
+                      }
+                    }}
+                  >
+                    {isCurrent ? 'Plan actuel' : isDowngrade ? 'Choisir' : 'Choisir'}
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -749,7 +950,7 @@ function ProductDetailModal() {
           {/* Price */}
           <div className="flex items-baseline gap-2">
             <span className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#8B0000]">
-              {selectedProduct.price.toFixed(2)} €
+              {formatPrice(selectedProduct.price)}
             </span>
             <span className="text-sm text-[#8B4513]/50">/ {selectedProduct.unit}</span>
           </div>
@@ -850,7 +1051,7 @@ function ProductDetailModal() {
                         )}
                         <div className="text-right">
                           <span className={`font-[family-name:var(--font-playfair)] text-base font-bold ${isLowest ? 'text-green-700' : 'text-[#8B0000]'}`}>
-                            {offer.price.toFixed(2)} €
+                            {formatPrice(offer.price)}
                           </span>
                           <span className="text-[10px] text-[#8B4513]/50 block">
                             /{selectedProduct.unit}
@@ -861,10 +1062,10 @@ function ProductDetailModal() {
                   )
                 })}
               </div>
-              {lowestPrice < selectedProduct.price && (
+              {lowestPrice !== undefined && lowestPrice < selectedProduct.price && (
                 <p className="text-xs text-green-700 font-medium flex items-center gap-1">
                   <TrendingDown className="size-3" />
-                  Meilleur prix : {lowestPrice.toFixed(2)} € — économisez {(selectedProduct.price - lowestPrice).toFixed(2)} €
+                  Meilleur prix : {formatPrice(lowestPrice)} — économisez {formatPrice(selectedProduct.price - lowestPrice)}
                 </p>
               )}
             </div>
@@ -957,7 +1158,7 @@ function FavoritesPanel() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[#3D1F1A] truncate">{fav.product.name}</p>
                     <p className="text-xs text-[#8B4513]/50">
-                      {fav.product.price.toFixed(2)} € / {fav.product.unit}
+                      {formatPrice(fav.product.price)} / {fav.product.unit}
                     </p>
                   </div>
                   <Button
@@ -981,11 +1182,23 @@ function FavoritesPanel() {
 // ─── Merchant Dashboard ──────────────────────────────────────────────────────
 
 function MerchantDashboard() {
-  const { merchantDashboardOpen, setMerchantDashboardOpen } = useMarketStore()
+  const { merchantDashboardOpen, setMerchantDashboardOpen, setPremiumPlansOpen } = useMarketStore()
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const merchantId = (session?.user as any)?.merchantId
+  const plan = (session?.user as any)?.plan || 'gratuit'
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    unit: 'kg',
+    image: '📦',
+    categoryId: '',
+    inStock: true,
+  })
 
   const { data: merchants = [] } = useQuery({
     queryKey: ['merchants'],
@@ -994,11 +1207,20 @@ function MerchantDashboard() {
 
   const merchant = merchants.find((m) => m.id === merchantId)
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  })
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['merchant-products', merchantId],
     queryFn: () => fetchMerchantProducts(merchantId!),
     enabled: !!merchantId && merchantDashboardOpen,
   })
+
+  const planLimit = getPlanLimit(plan)
+  const productCount = products.length
+  const canAddMore = productCount < planLimit
 
   const updateMutation = useMutation({
     mutationFn: ({ productId, data }: { productId: string; data: { inStock?: boolean; featured?: boolean } }) =>
@@ -1009,6 +1231,53 @@ function MerchantDashboard() {
     },
   })
 
+  const createMutation = useMutation({
+    mutationFn: (data: {
+      name: string; description: string; price: number; unit: string;
+      image: string; categoryId: string; inStock: boolean;
+    }) => createMerchantProduct(merchantId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-products', merchantId] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      toast({ title: 'Produit ajouté !', description: 'Votre produit est maintenant en ligne.' })
+      setNewProduct({ name: '', description: '', price: '', unit: 'kg', image: '📦', categoryId: '', inStock: true })
+      setShowAddForm(false)
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (productId: string) => deleteMerchantProduct(merchantId!, productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-products', merchantId] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      toast({ title: 'Produit supprimé', description: 'Le produit a été retiré de votre échoppe.' })
+    },
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible de supprimer le produit', variant: 'destructive' })
+    },
+  })
+
+  const handleAddProduct = () => {
+    if (!newProduct.name || !newProduct.price || !newProduct.categoryId) {
+      toast({ title: 'Champs requis', description: 'Nom, prix et catégorie sont obligatoires', variant: 'destructive' })
+      return
+    }
+    createMutation.mutate({
+      name: newProduct.name,
+      description: newProduct.description,
+      price: parseFloat(newProduct.price),
+      unit: newProduct.unit,
+      image: newProduct.image,
+      categoryId: newProduct.categoryId,
+      inStock: newProduct.inStock,
+    })
+  }
+
+  const EMOJI_OPTIONS = ['📦', '🥩', '🍖', '🐟', '🐠', '🦐', '🥭', '🍎', '🍊', '🍋', '🍌', '🍍', '🍅', '🧅', '🥬', '🌶️', '🧂', '🍯', '🫙', '🧀', '🍞', '🥖', '🥐', '🍷', '🍹', '🥤', '🍵', '🌿', '🍃', '🐔', '🐦', '🦪', '🫘']
+
   if (!merchantId || !merchant) return null
 
   return (
@@ -1018,12 +1287,15 @@ function MerchantDashboard() {
           <DialogTitle className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center gap-3">
             <span className="text-3xl">{merchant.image}</span>
             <div>
-              <div>{merchant.name}</div>
+              <div className="flex items-center gap-2">
+                {merchant.name}
+                {getPlanBadge(plan)}
+              </div>
               <div className="text-xs font-normal text-[#8B4513]/60">{merchant.specialty} — {merchant.location}</div>
             </div>
           </DialogTitle>
           <DialogDescription className="text-[#8B4513]/70">
-            Gérez vos produits : stock et produits vedettes
+            Gérez vos produits : stock, vedettes et ajouts
           </DialogDescription>
         </DialogHeader>
 
@@ -1033,7 +1305,192 @@ function MerchantDashboard() {
           style={{ backgroundColor: merchant.banner }}
         />
 
-        <ScrollArea className="max-h-[55vh]">
+        {/* Plan info + Add product button */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-xs px-2 py-0.5"
+              style={{
+                backgroundColor: plan === 'premium_plus' ? '#8B000010' : plan === 'premium' ? '#8B451310' : '#8B451305',
+                color: plan === 'premium_plus' ? '#8B0000' : plan === 'premium' ? '#8B4513' : '#8B4513/60',
+                borderColor: plan === 'premium_plus' ? '#8B000030' : plan === 'premium' ? '#8B451330' : '#8B451320',
+              }}
+            >
+              {plan === 'premium_plus' ? <Diamond className="size-3 mr-1" /> : plan === 'premium' ? <Crown className="size-3 mr-1" /> : <Zap className="size-3 mr-1" />}
+              {productCount}{planLimit === Infinity ? '' : `/${planLimit}`} produits ({getPlanLabel(plan)})
+            </Badge>
+          </div>
+          <Button
+            onClick={() => {
+              if (!canAddMore) {
+                setPremiumPlansOpen(true)
+                return
+              }
+              setShowAddForm(!showAddForm)
+            }}
+            size="sm"
+            className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1"
+          >
+            <Plus className="size-4" />
+            Ajouter un produit
+          </Button>
+        </div>
+
+        {/* Add product form */}
+        <AnimatePresence>
+          {showAddForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-lg border border-[#DAA520]/30 bg-[#FAEBD7]/40 p-4 space-y-3">
+                <h4 className="font-[family-name:var(--font-playfair)] text-sm font-semibold text-[#3D1F1A]">
+                  ➕ Nouveau produit
+                </h4>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Nom *</Label>
+                    <Input
+                      placeholder="Nom du produit"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                      className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Prix (FCFA) *</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={newProduct.price}
+                      onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                      className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-[#8B4513]">Description</Label>
+                  <Input
+                    placeholder="Description du produit"
+                    value={newProduct.description}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                    className="h-8 text-sm border-[#DAA520]/30 bg-white/70"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Unité</Label>
+                    <Select value={newProduct.unit} onValueChange={(v) => setNewProduct({ ...newProduct, unit: v })}>
+                      <SelectTrigger className="h-8 text-sm border-[#DAA520]/30 bg-white/70">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kg">kg</SelectItem>
+                        <SelectItem value="pièce">pièce</SelectItem>
+                        <SelectItem value="botte">botte</SelectItem>
+                        <SelectItem value="sachet">sachet</SelectItem>
+                        <SelectItem value="pot">pot</SelectItem>
+                        <SelectItem value="bouteille">bouteille</SelectItem>
+                        <SelectItem value="douzaine">douzaine</SelectItem>
+                        <SelectItem value="100g">100g</SelectItem>
+                        <SelectItem value="500g">500g</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Catégorie *</Label>
+                    <Select value={newProduct.categoryId} onValueChange={(v) => setNewProduct({ ...newProduct, categoryId: v })}>
+                      <SelectTrigger className="h-8 text-sm border-[#DAA520]/30 bg-white/70">
+                        <SelectValue placeholder="Choisir..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.icon} {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#8B4513]">Image</Label>
+                    <Select value={newProduct.image} onValueChange={(v) => setNewProduct({ ...newProduct, image: v })}>
+                      <SelectTrigger className="h-8 text-sm border-[#DAA520]/30 bg-white/70">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="grid grid-cols-8 gap-1 p-1">
+                          {EMOJI_OPTIONS.map((emoji) => (
+                            <SelectItem key={emoji} value={emoji} className="text-center text-lg justify-center">
+                              {emoji}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#8B4513]">
+                    <input
+                      type="checkbox"
+                      checked={newProduct.inStock}
+                      onChange={(e) => setNewProduct({ ...newProduct, inStock: e.target.checked })}
+                      className="rounded border-[#DAA520]/30"
+                    />
+                    En stock
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handleAddProduct}
+                    disabled={createMutation.isPending}
+                    size="sm"
+                    className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1"
+                  >
+                    {createMutation.isPending ? 'Ajout...' : 'Ajouter'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAddForm(false)}
+                    className="text-[#8B4513]/60"
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!canAddMore && !showAddForm && (
+          <div className="rounded-lg bg-[#DAA520]/10 border border-[#DAA520]/20 p-3 text-center">
+            <p className="text-sm text-[#8B4513] font-medium">
+              ⬆ Limite atteinte ! Passez en {plan === 'gratuit' ? 'Premium' : 'Premium+'} pour plus de produits
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 border-[#DAA520]/30 text-[#8B0000] hover:bg-[#FAEBD7]"
+              onClick={() => setPremiumPlansOpen(true)}
+            >
+              <Diamond className="size-3 mr-1" />
+              Voir les abonnements
+            </Button>
+          </div>
+        )}
+
+        <ScrollArea className="max-h-[40vh]">
           {isLoading ? (
             <div className="space-y-3 p-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -1054,7 +1511,7 @@ function MerchantDashboard() {
                       {product.featured && <span className="text-[#DAA520] text-xs">⭐</span>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-semibold text-[#8B0000]">{product.price.toFixed(2)} €</span>
+                      <span className="text-xs font-semibold text-[#8B0000]">{formatPrice(product.price)}</span>
                       <Badge
                         variant="outline"
                         className="text-[10px] px-1.5 py-0"
@@ -1068,7 +1525,8 @@ function MerchantDashboard() {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Stock toggle */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1091,7 +1549,7 @@ function MerchantDashboard() {
                       {product.inStock ? (
                         <>
                           <PackageCheck className="size-3.5" />
-                          <span className="hidden sm:inline">En stock</span>
+                          <span className="hidden sm:inline">Stock</span>
                         </>
                       ) : (
                         <>
@@ -1100,36 +1558,65 @@ function MerchantDashboard() {
                         </>
                       )}
                     </Button>
+
+                    {/* Featured toggle - only for premium+ */}
+                    {plan === 'premium_plus' ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          updateMutation.mutate({
+                            productId: product.id,
+                            data: { featured: !product.featured },
+                          })
+                          toast({
+                            title: product.featured ? 'Retiré des vedettes' : 'Produit vedette',
+                            description: product.name,
+                          })
+                        }}
+                        className={`gap-1 text-xs h-8 px-2 ${
+                          product.featured
+                            ? 'text-[#DAA520] hover:bg-[#DAA520]/10'
+                            : 'text-[#8B4513]/40 hover:bg-[#FAEBD7] hover:text-[#8B4513]'
+                        }`}
+                      >
+                        {product.featured ? (
+                          <>
+                            <Star className="size-3.5 fill-current" />
+                            <span className="hidden sm:inline">Vedette</span>
+                          </>
+                        ) : (
+                          <>
+                            <Star className="size-3.5" />
+                            <span className="hidden sm:inline">Normal</span>
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 text-xs h-8 px-2 text-[#8B4513]/30 cursor-not-allowed"
+                        disabled
+                        title="Passez en Premium+ pour mettre en avant"
+                      >
+                        <Star className="size-3.5" />
+                        <span className="hidden sm:inline">⬆ Premium+</span>
+                      </Button>
+                    )}
+
+                    {/* Delete button */}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        updateMutation.mutate({
-                          productId: product.id,
-                          data: { featured: !product.featured },
-                        })
-                        toast({
-                          title: product.featured ? 'Retiré des vedettes' : 'Produit vedette',
-                          description: product.name,
-                        })
+                        if (confirm(`Supprimer "${product.name}" ?`)) {
+                          deleteMutation.mutate(product.id)
+                        }
                       }}
-                      className={`gap-1 text-xs h-8 px-2 ${
-                        product.featured
-                          ? 'text-[#DAA520] hover:bg-[#DAA520]/10'
-                          : 'text-[#8B4513]/40 hover:bg-[#FAEBD7] hover:text-[#8B4513]'
-                      }`}
+                      className="gap-1 text-xs h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50"
                     >
-                      {product.featured ? (
-                        <>
-                          <Star className="size-3.5 fill-current" />
-                          <span className="hidden sm:inline">Vedette</span>
-                        </>
-                      ) : (
-                        <>
-                          <Star className="size-3.5" />
-                          <span className="hidden sm:inline">Normal</span>
-                        </>
-                      )}
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -1203,7 +1690,7 @@ function HeroSection({
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mt-2 font-[family-name:var(--font-playfair)] text-base sm:text-lg text-[#FAEBD7]/80 italic"
         >
-          Découvrez les trésors de notre marché séculaire
+          Le marché de Dakar, à portée de main
         </motion.p>
 
         {/* Search bar */}
@@ -1416,7 +1903,7 @@ function ProductCard({ product }: { product: Product }) {
           {/* Price */}
           <div className="mt-3 flex items-baseline gap-1">
             <span className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#8B0000]">
-              {product.price.toFixed(2)} €
+              {formatPrice(product.price)}
             </span>
             <span className="text-xs text-[#8B4513]/50">/ {product.unit}</span>
           </div>
@@ -1488,9 +1975,11 @@ function ProductCard({ product }: { product: Product }) {
 function MerchantCard({
   merchant,
   products,
+  plan,
 }: {
   merchant: Merchant
   products: Product[]
+  plan?: string
 }) {
   const { setSelectedProduct } = useMarketStore()
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -1533,8 +2022,9 @@ function MerchantCard({
               {merchant.image}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#3D1F1A]">
+              <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#3D1F1A] flex items-center gap-2">
                 {merchant.name}
+                {plan && plan !== 'gratuit' && getPlanBadge(plan)}
               </h3>
               <p className="mt-0.5 text-xs text-[#8B4513]/60 line-clamp-1">
                 {merchant.description}
@@ -1607,7 +2097,7 @@ function MerchantCard({
                 </div>
                 <div className="text-right shrink-0">
                   <span className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#8B0000]">
-                    {product.price.toFixed(2)} €
+                    {formatPrice(product.price)}
                   </span>
                   <span className="text-[10px] text-[#8B4513]/50 block">
                     /{product.unit}
@@ -1682,6 +2172,8 @@ export default function HomePage() {
     queryFn: fetchFavorites,
     enabled: !!session,
   })
+
+  const currentMerchantId = (session?.user as any)?.merchantId
 
   const isLoading = categoriesLoading || merchantsLoading || productsLoading
 
@@ -1843,6 +2335,7 @@ export default function HomePage() {
                     key={merchant.id}
                     merchant={merchant}
                     products={merchantProductMap.get(merchant.id) || []}
+                    plan={merchant.id === currentMerchantId ? ((session?.user as any)?.plan || 'gratuit') : undefined}
                   />
                 ))}
               </motion.div>
@@ -1869,6 +2362,7 @@ export default function HomePage() {
       <ProductDetailModal />
       <FavoritesPanel />
       <MerchantDashboard />
+      <PremiumPlansDialog />
     </div>
   )
 }

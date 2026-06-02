@@ -16,6 +16,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const user = await db.user.findUnique({
             where: { email: credentials.email },
+            include: { subscription: true },
           })
 
           if (!user || !user.password) return null
@@ -26,7 +27,6 @@ export const authOptions: NextAuthOptions = {
             const { compare } = await import('bcryptjs')
             isValid = await compare(credentials.password, user.password)
           } catch {
-            // Bcrypt failed - try direct comparison
             isValid = credentials.password === user.password
           }
 
@@ -37,6 +37,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name || undefined,
             email: user.email || undefined,
             merchantId: user.merchantId || undefined,
+            plan: user.subscription?.plan || 'gratuit',
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -54,6 +55,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.merchantId = (user as any).merchantId ?? null
+        token.plan = (user as any).plan ?? 'gratuit'
       }
       return token
     },
@@ -61,6 +63,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         ;(session.user as any).id = token.id || null
         ;(session.user as any).merchantId = token.merchantId || null
+        ;(session.user as any).plan = token.plan || 'gratuit'
       }
       return session
     },

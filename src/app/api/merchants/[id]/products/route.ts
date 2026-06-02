@@ -21,6 +21,64 @@ export async function GET(
   }
 }
 
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const merchantId = (session.user as any).merchantId
+    const { id } = await params
+
+    // Only allow creating products for your own merchant
+    if (merchantId !== id) {
+      return NextResponse.json({ error: 'Non autorisé pour ce marchand' }, { status: 403 })
+    }
+
+    const body = await req.json()
+    const { name, description, price, unit, image, categoryId, inStock } = body
+
+    if (!name || !price || !unit || !categoryId) {
+      return NextResponse.json({ error: 'Nom, prix, unité et catégorie requis' }, { status: 400 })
+    }
+
+    // Check product limit based on plan
+    const plan = (session.user as any).plan || 'gratuit'
+    const existingCount = await db.product.count({ where: { merchantId: id } })
+
+    if (plan === 'gratuit' && existingCount >= 5) {
+      return NextResponse.json({ error: 'Limite atteinte (5 produits). Passez en Premium pour plus !' }, { status: 403 })
+    }
+    if (plan === 'premium' && existingCount >= 50) {
+      return NextResponse.json({ error: 'Limite atteinte (50 produits). Passez en Premium+ pour illimité !' }, { status: 403 })
+    }
+
+    const product = await db.product.create({
+      data: {
+        name,
+        description: description || '',
+        price: parseFloat(price),
+        unit,
+        image: image || '📦',
+        inStock: inStock !== undefined ? inStock : true,
+        featured: false, // Only premium+ can feature
+        categoryId,
+        merchantId: id,
+      },
+      include: { category: true, merchant: true },
+    })
+
+    return NextResponse.json(product, { status: 201 })
+  } catch (error) {
+    console.error('Error creating product:', error)
+    return NextResponse.json({ error: 'Erreur lors de la création' }, { status: 500 })
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -31,12 +89,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    const merchantId = (session.user as any)?.merchantId
     const { id } = await params
     const body = await req.json()
     const { productId, ...data } = body
 
     if (productId) {
-      // Update a specific product
+      // Only premium+ can set featured
+      const plan = (session.user as any)?.plan || 'gratuit'
+      if (data.featured && plan !== 'premium_plus') {
+        delete data.featured
+      }
+
+      // Allow price/description update for all
       const product = await db.product.update({
         where: { id: productId, merchantId: id },
         data,
@@ -48,5 +113,36 @@ export async function PATCH(
   } catch (error) {
     console.error('Error updating product:', error)
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const merchantId = (session.user as any)?.merchantId
+    const { id } = await params
+    const { searchParams } = new URL(req.url)
+    const productId = searchParams.get('productId')
+
+    if (!productId) {
+      return NextResponse.json({ error: 'productId requis' }, { status: 400 })
+    }
+
+    if (merchantId !== id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+
+    await db.product.delete({ where: { id: productId, merchantId: id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
   }
 }

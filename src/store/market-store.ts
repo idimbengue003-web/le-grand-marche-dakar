@@ -63,6 +63,9 @@ interface MarketState {
   // Favorites panel
   favoritesOpen: boolean
 
+  // Premium plans dialog
+  premiumPlansOpen: boolean
+
   // Actions
   setSelectedCategoryId: (id: string | null) => void
   setSearchQuery: (query: string) => void
@@ -75,6 +78,7 @@ interface MarketState {
   setSelectedProduct: (product: Product | null) => void
   setMerchantDashboardOpen: (open: boolean) => void
   setFavoritesOpen: (open: boolean) => void
+  setPremiumPlansOpen: (open: boolean) => void
 }
 
 export const useMarketStore = create<MarketState>((set) => ({
@@ -89,6 +93,7 @@ export const useMarketStore = create<MarketState>((set) => ({
   selectedProduct: null,
   merchantDashboardOpen: false,
   favoritesOpen: false,
+  premiumPlansOpen: false,
 
   setSelectedCategoryId: (id) => set({ selectedCategoryId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
@@ -101,4 +106,5 @@ export const useMarketStore = create<MarketState>((set) => ({
   setSelectedProduct: (product) => set({ selectedProduct: product }),
   setMerchantDashboardOpen: (open) => set({ merchantDashboardOpen: open }),
   setFavoritesOpen: (open) => set({ favoritesOpen: open }),
+  setPremiumPlansOpen: (open) => set({ premiumPlansOpen: open }),
 }))
