@@ -1,5 +1,25 @@
 // Push schema to Turso using libSQL client
 import { createClient } from '@libsql/client'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+// Load .env file if not on Vercel (where env vars are injected automatically)
+if (!process.env.VERCEL) {
+  try {
+    const envPath = resolve(process.cwd(), '.env')
+    const envContent = readFileSync(envPath, 'utf-8')
+    for (const line of envContent.split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const match = trimmed.match(/^([^=]+)=(.*)$/)
+      if (match && !process.env[match[1].trim()]) {
+        process.env[match[1].trim()] = match[2].trim()
+      }
+    }
+  } catch {
+    // .env file not found, that's ok
+  }
+}
 
 const TURSO_URL = process.env.TURSO_DATABASE_URL || ''
 const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN || ''
