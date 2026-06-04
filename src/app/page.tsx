@@ -392,6 +392,11 @@ function AuthModal() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [selectedMerchantId, setSelectedMerchantId] = useState('')
+  const [shopName, setShopName] = useState('')
+  const [shopDescription, setShopDescription] = useState('')
+  const [shopLocation, setShopLocation] = useState('')
+  const [shopPhone, setShopPhone] = useState('')
+  const [shopAddress, setShopAddress] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -406,6 +411,11 @@ function AuthModal() {
     setName('')
     setPhone('')
     setSelectedMerchantId('')
+    setShopName('')
+    setShopDescription('')
+    setShopLocation('')
+    setShopPhone('')
+    setShopAddress('')
     setError('')
     setLoading(false)
   }
@@ -468,6 +478,14 @@ function AuthModal() {
       setError('Format téléphone invalide. Utilisez +221 XX XXX XX XX ou 77/78/76/75/70 XXX XX XX')
       return
     }
+    if (authRole === 'vendeur' && !shopName && !selectedMerchantId) {
+      setError('Vendeurs : veuillez créer votre boutique ou sélectionner une échoppe existante')
+      return
+    }
+    if (authRole === 'vendeur' && shopPhone && !isValidSenegalesePhone(shopPhone)) {
+      setError('Numéro de boutique invalide. Format: +221 XX XXX XX XX')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -481,6 +499,11 @@ function AuthModal() {
           phone: phone || undefined,
           role: authRole,
           merchantId: authRole === 'vendeur' && selectedMerchantId ? selectedMerchantId : undefined,
+          shopName: authRole === 'vendeur' && !selectedMerchantId && shopName ? shopName : undefined,
+          shopDescription: shopDescription || undefined,
+          shopLocation: shopLocation || undefined,
+          shopPhone: shopPhone || undefined,
+          shopAddress: shopAddress || undefined,
         }),
       })
       const data = await res.json()
@@ -668,7 +691,7 @@ function AuthModal() {
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="reg-name" className="text-[#8B4513]">Nom (optionnel)</Label>
+                      <Label htmlFor="reg-name" className="text-[#8B4513]">Votre nom</Label>
                       <Input
                         id="reg-name"
                         type="text"
@@ -703,20 +726,105 @@ function AuthModal() {
                         className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-merchant" className="text-[#8B4513]">Échoppe (optionnel)</Label>
-                      <Select value={selectedMerchantId} onValueChange={setSelectedMerchantId}>
-                        <SelectTrigger className="border-[#DAA520]/30 bg-white/70">
-                          <SelectValue placeholder="Sélectionnez votre échoppe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {merchants.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.image} {m.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+
+                    {/* Shop creation section */}
+                    <div className="border-2 border-[#DAA520]/20 rounded-xl p-3 bg-[#FAEBD7]/40 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-[#3D1F1A]">
+                        <Store className="size-4 text-[#8B0000]" />
+                        Créer votre boutique
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="shop-name" className="text-[#8B4513] text-xs">Nom de la boutique *</Label>
+                        <Input
+                          id="shop-name"
+                          type="text"
+                          placeholder="Ex: Boucherie Al Baraka"
+                          value={shopName}
+                          onChange={(e) => setShopName(e.target.value)}
+                          className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 text-sm h-9"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="shop-desc" className="text-[#8B4513] text-xs">Description</Label>
+                        <Input
+                          id="shop-desc"
+                          type="text"
+                          placeholder="Décrivez votre activité"
+                          value={shopDescription}
+                          onChange={(e) => setShopDescription(e.target.value)}
+                          className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 text-sm h-9"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="shop-location" className="text-[#8B4513] text-xs">Quartier</Label>
+                          <Select value={shopLocation} onValueChange={setShopLocation}>
+                            <SelectTrigger className="border-[#DAA520]/30 bg-white/70 text-sm h-9">
+                              <SelectValue placeholder="Quartier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Plateau, Dakar">Plateau</SelectItem>
+                              <SelectItem value="Almadies, Dakar">Almadies</SelectItem>
+                              <SelectItem value="Médina, Dakar">Médina</SelectItem>
+                              <SelectItem value="Sandaga, Dakar">Sandaga</SelectItem>
+                              <SelectItem value="Mermoz, Dakar">Mermoz</SelectItem>
+                              <SelectItem value="Sacré-Cœur, Dakar">Sacré-Cœur</SelectItem>
+                              <SelectItem value="Ouakam, Dakar">Ouakam</SelectItem>
+                              <SelectItem value="Fann, Dakar">Fann</SelectItem>
+                              <SelectItem value="Point E, Dakar">Point E</SelectItem>
+                              <SelectItem value="Grand Yoff, Dakar">Grand Yoff</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="shop-phone" className="text-[#8B4513] text-xs">Tél. boutique</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-[#8B4513]/40" />
+                            <Input
+                              id="shop-phone"
+                              type="tel"
+                              placeholder="+221 77..."
+                              value={shopPhone}
+                              onChange={(e) => setShopPhone(e.target.value)}
+                              className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 text-sm h-9 pl-8"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="shop-address" className="text-[#8B4513] text-xs">Adresse</Label>
+                        <Input
+                          id="shop-address"
+                          type="text"
+                          placeholder="Ex: 45 Rue des Almadies, Dakar"
+                          value={shopAddress}
+                          onChange={(e) => setShopAddress(e.target.value)}
+                          className="border-[#DAA520]/30 bg-white/70 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 text-sm h-9"
+                        />
+                      </div>
+
+                      {merchants.length > 0 && (
+                        <details className="mt-1">
+                          <summary className="text-[10px] text-[#8B4513]/50 cursor-pointer hover:text-[#8B4513]/70">
+                            Ou sélectionner une échoppe existante
+                          </summary>
+                          <div className="mt-2">
+                            <Select value={selectedMerchantId} onValueChange={(v) => { setSelectedMerchantId(v); setShopName('') }}>
+                              <SelectTrigger className="border-[#DAA520]/30 bg-white/70 text-sm h-9">
+                                <SelectValue placeholder="Échoppe existante" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {merchants.map((m) => (
+                                  <SelectItem key={m.id} value={m.id}>
+                                    {m.image} {m.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </details>
+                      )}
                     </div>
                   </>
                 )}
@@ -728,17 +836,6 @@ function AuthModal() {
                   {loading ? 'Inscription...' : 'S\'inscrire'}
                 </Button>
               </>
-            )}
-
-            {authMode === 'login' && (
-              <div className="space-y-1">
-                <p className="text-center text-xs text-[#8B4513]/50">
-                  Vendeur test : albaraka@marche.sn / vendeur1
-                </p>
-                <p className="text-center text-xs text-[#8B4513]/50">
-                  Acheteur test : acheteur@marche.sn / buyer1
-                </p>
-              </div>
             )}
           </div>
         </Tabs>
@@ -4046,9 +4143,21 @@ function AlimentairePage() {
               </h2>
               
               {filteredProducts.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingBag className="size-12 text-[#DAA520]/30 mx-auto mb-3" />
-                  <p className="text-[#8B4513]/60">Aucun produit trouvé</p>
+                <div className="text-center py-16">
+                  <ShoppingBag className="size-16 text-[#DAA520]/30 mx-auto mb-4" />
+                  <h3 className="font-[family-name:var(--font-playfair)] text-xl font-semibold text-[#3D1F1A] mb-2">
+                    Le marché s'installe...
+                  </h3>
+                  <p className="text-[#8B4513]/60 max-w-md mx-auto mb-4">
+                    Les vendeurs de Dakar arrivent bientôt! En attendant, explorez les catégories ou devenez vendeur.
+                  </p>
+                  <Button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-2"
+                  >
+                    <Store className="size-4" />
+                    Devenir vendeur
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -4299,7 +4408,8 @@ function ElectronicsPage() {
           {filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <Smartphone className="size-12 text-[#DAA520]/30 mx-auto mb-3" />
-              <p className="text-[#8B4513]/60">Aucun produit trouvé</p>
+              <p className="text-[#8B4513]/60">Aucun produit en électronique pour le moment.</p>
+              <p className="text-sm text-[#8B4513]/40 mt-1">Les vendeurs arrivent bientôt!</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">

@@ -24,3 +24,31 @@ Stage Summary:
 - Vendor phone numbers displayed blurred (hover to reveal) in product detail, merchant cards, and shop pages
 - Payment disclaimer ("porte à porte", site not responsible) visible in product modal and all footers
 - All 18 merchants now have Senegalese phone numbers in the database
+
+---
+Task ID: 2
+Agent: Main
+Task: Remove all fake listings/announcements, prepare for deployment with real vendors
+
+Work Log:
+- Rewrote seed route to only seed categories (36 categories), removed all MERCHANTS, PRODUCTS, test accounts
+- Cleared database and re-seeded with categories only (0 merchants, 0 products)
+- Updated vendor registration form: replaced "select existing échoppe" with "Créer votre boutique" form
+  - Fields: shop name (required), description, quartier (10 Dakar neighborhoods), phone, address
+  - Existing échoppe selection moved to a collapsible "details" section
+- Updated register API to support creating a merchant/shop during registration
+  - Added slugify function for URL-safe merchant slugs
+  - Auto-assigns banner color from 10 preset colors
+  - Defaults to Dakar coordinates for the selected quartier
+  - Validates shop phone number (Senegalese format)
+- Removed test credentials from login form (albaraka@marche.sn, acheteur@marche.sn)
+- Improved empty state UI on main page: "Le marché s'installe..." with "Devenir vendeur" button
+- Improved empty state UI on electronics page: contextual message about vendors arriving soon
+- Added validation: vendors must create a shop name or select an existing échoppe
+- Lint passes, dev server runs successfully with empty marketplace
+
+Stage Summary:
+- Database contains only categories (36), no fake merchants or products
+- Vendors can now create their own shop during registration
+- Empty state is welcoming and encourages vendor sign-up
+- Ready for deployment with real vendors
