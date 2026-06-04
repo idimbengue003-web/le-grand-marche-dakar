@@ -74,6 +74,7 @@ const MERCHANTS = [
     longitude: -17.5167,
     specialty: 'Viandes & Volailles',
     banner: '#8B0000',
+    phone: '+221 77 123 45 01',
   },
   {
     name: 'Poissonnerie Ndiagane',
@@ -87,6 +88,7 @@ const MERCHANTS = [
     longitude: -17.4483,
     specialty: 'Poissons & Fruits de mer',
     banner: '#1E90FF',
+    phone: '+221 78 234 56 02',
   },
   {
     name: 'Jardin du Sahel',
@@ -100,6 +102,7 @@ const MERCHANTS = [
     longitude: -17.4380,
     specialty: 'Fruits & Légumes',
     banner: '#FF6347',
+    phone: '+221 76 345 67 03',
   },
   {
     name: 'Épices Teranga',
@@ -113,6 +116,7 @@ const MERCHANTS = [
     longitude: -17.4320,
     specialty: 'Épices & Condiments',
     banner: '#FF8C00',
+    phone: '+221 77 456 78 04',
   },
   {
     name: 'Rucher du Saloum',
@@ -126,6 +130,7 @@ const MERCHANTS = [
     longitude: -17.4530,
     specialty: 'Miel & Confitures',
     banner: '#DAA520',
+    phone: '+221 78 567 89 05',
   },
   {
     name: 'Fromagerie Ndar',
@@ -139,6 +144,7 @@ const MERCHANTS = [
     longitude: -17.4640,
     specialty: 'Fromages & Produits laitiers',
     banner: '#FFD700',
+    phone: '+221 76 678 90 06',
   },
   {
     name: 'Boulangerie Touba',
@@ -152,6 +158,7 @@ const MERCHANTS = [
     longitude: -17.4650,
     specialty: 'Pains & Pâtisseries',
     banner: '#D2691E',
+    phone: '+221 77 789 01 07',
   },
   {
     name: 'Cave Dakar',
@@ -165,6 +172,7 @@ const MERCHANTS = [
     longitude: -17.4730,
     specialty: 'Boissons & Jus',
     banner: '#722F37',
+    phone: '+221 78 890 12 08',
   },
   {
     name: 'Herboristerie Khady',
@@ -178,6 +186,7 @@ const MERCHANTS = [
     longitude: -17.4750,
     specialty: 'Herbes & Remèdes',
     banner: '#3CB371',
+    phone: '+221 76 901 23 09',
   },
   {
     name: 'Orangerie Casamance',
@@ -191,6 +200,7 @@ const MERCHANTS = [
     longitude: -17.4870,
     specialty: 'Citrons & Agrumes',
     banner: '#FFD700',
+    phone: '+221 77 012 34 10',
   },
   // NEW MERCHANTS
   {
@@ -205,6 +215,7 @@ const MERCHANTS = [
     longitude: -17.4700,
     specialty: 'Supermarché — Épicerie',
     banner: '#228B22',
+    phone: '+221 78 111 22 11',
   },
   {
     name: 'Supermarché Promod',
@@ -218,6 +229,7 @@ const MERCHANTS = [
     longitude: -17.4600,
     specialty: 'Supermarché — Alimentation',
     banner: '#4169E1',
+    phone: '+221 76 222 33 12',
   },
   // BOUTIQUES ÉLECTRONIQUE DAKAR
   {
@@ -232,6 +244,7 @@ const MERCHANTS = [
     longitude: -17.5150,
     specialty: 'Téléphones & Tablettes',
     banner: '#1a1a2e',
+    phone: '+221 77 333 44 13',
   },
   {
     name: 'Informatique Numérique',
@@ -245,6 +258,7 @@ const MERCHANTS = [
     longitude: -17.4390,
     specialty: 'Ordinateurs & IT',
     banner: '#16213e',
+    phone: '+221 78 444 55 14',
   },
   {
     name: 'Sonorité Dakar',
@@ -258,6 +272,7 @@ const MERCHANTS = [
     longitude: -17.4540,
     specialty: 'Audio & Son',
     banner: '#0f3460',
+    phone: '+221 76 555 66 15',
   },
   {
     name: 'ÉlectroMall',
@@ -271,6 +286,7 @@ const MERCHANTS = [
     longitude: -17.4710,
     specialty: 'TV & Électroménager',
     banner: '#533483',
+    phone: '+221 77 666 77 16',
   },
   {
     name: 'GameZone Dakar',
@@ -284,6 +300,7 @@ const MERCHANTS = [
     longitude: -17.4720,
     specialty: 'Gaming & Consoles',
     banner: '#541690',
+    phone: '+221 78 777 88 17',
   },
   {
     name: 'PhotoPro Dakar',
@@ -297,6 +314,7 @@ const MERCHANTS = [
     longitude: -17.4630,
     specialty: 'Photo & Vidéo',
     banner: '#e94560',
+    phone: '+221 76 888 99 18',
   },
 ]
 

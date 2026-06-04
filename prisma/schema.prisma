@@ -88,6 +88,7 @@ model Merchant {
   longitude   Float     @default(0)
   specialty   String
   banner      String
+  phone       String    @default("")
   products    Product[]
   user        User?
   createdAt   DateTime  @default(now())

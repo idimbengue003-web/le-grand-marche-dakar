@@ -31,7 +31,6 @@ import {
   Diamond,
   Zap,
   Check,
-  ShoppingCart,
   ArrowLeft,
   Settings,
   Phone,
@@ -114,6 +113,7 @@ interface Merchant {
   longitude: number
   specialty: string
   banner: string
+  phone: string
   _count: { products: number }
 }
 
@@ -1340,19 +1340,36 @@ function ProductDetailModal() {
 
           {/* Action buttons */}
           <div className="space-y-2">
-            {/* Acheter button - green, prominent */}
-            <Button
-              className="w-full gap-2 bg-green-700 hover:bg-green-800 text-white font-bold text-base py-6 shadow-lg"
-              onClick={() => {
-                toast({
-                  title: '🛒 Produit ajouté au panier',
-                  description: `${selectedProduct.name} — ${formatPrice(selectedProduct.price)}`,
-                })
-              }}
-            >
-              <ShoppingCart className="size-5" />
-              Acheter — {formatPrice(selectedProduct.price)}
-            </Button>
+            {/* Contact vendor section - blurred phone number */}
+            <div className="rounded-xl border-2 border-[#DAA520]/30 bg-[#FAEBD7]/60 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#3D1F1A]">
+                <Phone className="size-4 text-[#8B0000]" />
+                Contacter le vendeur
+              </div>
+              
+              {/* Blurred phone number */}
+              <div className="relative group">
+                <div className={`flex items-center gap-3 bg-white/80 rounded-lg px-4 py-3 border border-[#DAA520]/20 transition-all ${selectedProduct.merchant.phone ? '' : 'opacity-50'}`}>
+                  <Smartphone className="size-5 text-[#8B0000] shrink-0" />
+                  <span className="font-mono text-lg font-bold text-[#8B0000] select-none blur-sm group-hover:blur-0 transition-all duration-300">
+                    {selectedProduct.merchant.phone || 'Non renseigné'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#8B4513]/60 text-center mt-1">Survolez pour révéler le numéro</p>
+              </div>
+
+              {/* Payment disclaimer */}
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                <div className="flex items-start gap-2">
+                  <Shield className="size-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-red-700 space-y-0.5">
+                    <p className="font-bold">⚠️ Ce site n'est pas responsable si vous envoyez votre argent.</p>
+                    <p>Tout paiement se fait <strong>porte à porte</strong> — en main propre au vendeur.</p>
+                    <p className="text-red-600/70">Ne transférez jamais d'argent par mobile money ou virement avant d'avoir reçu votre article.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Voir la Boutique button */}
             <Button
@@ -3358,10 +3375,10 @@ function ProductCard({ product }: { product: Product }) {
                   e.stopPropagation()
                   setSelectedProduct(product)
                 }}
-                className="gap-1 bg-green-700 hover:bg-green-800 text-white h-7 px-2 text-xs font-semibold"
+                className="gap-1 bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] h-7 px-2 text-xs font-semibold"
               >
-                <ShoppingCart className="size-3" />
-                Acheter
+                <Phone className="size-3" />
+                Contacter
               </Button>
             </div>
           </div>
@@ -3460,15 +3477,32 @@ function MerchantCard({
           </div>
 
           {/* Voir la Boutique button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateToShop(merchant.id)}
-            className="mt-3 gap-1.5 border-[#8B4513]/30 text-[#8B4513] hover:bg-[#FAEBD7] hover:border-[#8B4513]/50 text-xs font-semibold"
-          >
-            <Store className="size-3.5" />
-            🏪 Voir la Boutique
-          </Button>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToShop(merchant.id)}
+              className="gap-1.5 border-[#8B4513]/30 text-[#8B4513] hover:bg-[#FAEBD7] hover:border-[#8B4513]/50 text-xs font-semibold"
+            >
+              <Store className="size-3.5" />
+              🏪 Voir la Boutique
+            </Button>
+            {merchant.phone && (
+              <div className="relative group">
+                <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs border border-[#DAA520]/20 bg-white/60 cursor-pointer">
+                  <Phone className="size-3 text-[#8B0000]" />
+                  <span className="font-mono font-semibold text-[#8B0000] select-none blur-sm group-hover:blur-0 transition-all duration-300">
+                    {merchant.phone}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          {merchant.phone && (
+            <p className="mt-1.5 text-[9px] text-red-600/70 bg-red-50/50 rounded px-2 py-1 border border-red-100">
+              ⚠️ Ce site n'est pas responsable si vous envoyez votre argent. Tout paiement se fait porte à porte.
+            </p>
+          )}
         </div>
 
         <Separator className="bg-[#DAA520]/15" />
@@ -3638,6 +3672,26 @@ function MerchantShopPage() {
                   {merchant.specialty}
                 </Badge>
               </div>
+
+              {/* Blurred phone number with disclaimer */}
+              {merchant.phone && (
+                <div className="mt-4 max-w-sm mx-auto">
+                  <div className="relative group">
+                    <div className="flex items-center justify-center gap-2 bg-white/10 rounded-full px-4 py-2 cursor-pointer">
+                      <Phone className="size-3.5 text-[#FFD700]" />
+                      <span className="font-mono text-sm font-bold text-[#FFD700] select-none blur-sm group-hover:blur-0 transition-all duration-300">
+                        {merchant.phone}
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-[#FAEBD7]/40 text-center mt-0.5">Survolez pour révéler</p>
+                  </div>
+                  <div className="mt-1.5 bg-red-900/30 rounded-lg px-2.5 py-1.5 border border-red-500/20">
+                    <p className="text-[9px] text-red-300/80 text-center">
+                      ⚠️ Ce site n'est pas responsable si vous envoyez votre argent. Tout paiement se fait <strong>porte à porte</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
@@ -3716,6 +3770,11 @@ function MerchantShopPage() {
           <p className="mt-1 text-xs text-[#FAEBD7]/30">
             ☙ Tous les trésors du royaume en un marché ✦
           </p>
+          <div className="mt-3 bg-red-900/20 border border-red-500/15 rounded-lg px-3 py-2 max-w-md mx-auto">
+            <p className="text-[10px] text-red-300/70">
+              ⚠️ Ce site n'est pas responsable si vous envoyez votre argent. Tout paiement se fait <strong>porte à porte</strong> — en main propre au vendeur.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
@@ -4050,6 +4109,9 @@ function AlimentairePage() {
         <p className="text-[#DAA520]/50 text-xs">
           ⚜ Le Grand Marché de DAKAR — Rayon Alimentaire ⚜
         </p>
+        <p className="mt-2 text-[10px] text-red-300/60 max-w-sm mx-auto">
+          ⚠️ Ce site n'est pas responsable si vous envoyez votre argent. Tout paiement se fait porte à porte.
+        </p>
       </footer>
     </div>
   )
@@ -4291,6 +4353,9 @@ function ElectronicsPage() {
       <footer className="mt-auto bg-[#2C1810] py-6 text-center">
         <p className="text-[#DAA520]/50 text-xs">
           ⚜ Le Grand Marché de DAKAR — Rayon Électronique ⚜
+        </p>
+        <p className="mt-2 text-[10px] text-red-300/60 max-w-sm mx-auto">
+          ⚠️ Ce site n'est pas responsable si vous envoyez votre argent. Tout paiement se fait porte à porte.
         </p>
       </footer>
     </div>
@@ -4589,6 +4654,11 @@ export default function HomePage() {
           <p className="mt-1 text-xs text-[#FAEBD7]/30">
             ☙ Tous les trésors du royaume en un marché ✦
           </p>
+          <div className="mt-3 bg-red-900/20 border border-red-500/15 rounded-lg px-3 py-2 max-w-md mx-auto">
+            <p className="text-[10px] text-red-300/70">
+              ⚠️ Ce site n'est pas responsable si vous envoyez votre argent. Tout paiement se fait <strong>porte à porte</strong> — en main propre au vendeur.
+            </p>
+          </div>
         </div>
       </footer>
 
