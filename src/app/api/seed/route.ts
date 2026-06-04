@@ -1081,7 +1081,7 @@ export async function POST(request: Request) {
     await db.notification.create({
       data: {
         userId: buyerUser.id,
-        title: 'Bienvenue au Marché Royal ! 👑',
+        title: 'Bienvenue au Marché de DAKAR ! 👑',
         message: 'Découvrez les meilleures offres de nos marchands. Ajoutez vos adresses de livraison et commencez vos achats.',
         type: 'systeme',
         read: false,
@@ -1117,7 +1117,7 @@ export async function POST(request: Request) {
     await db.notification.create({
       data: {
         userId: buyer2User.id,
-        title: 'Bienvenue au Marché Royal ! 👑',
+        title: 'Bienvenue au Marché de DAKAR ! 👑',
         message: 'Explorez les trésors de notre marché. Comparez les prix et trouvez les meilleures offres près de chez vous.',
         type: 'systeme',
         read: false,
@@ -1125,7 +1125,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({
-      message: 'Marché Royal ensemencé avec succès ! 🏪',
+      message: 'Marché de DAKAR ensemencé avec succès ! 🏪',
       count: {
         categories: CATEGORIES.length,
         merchants: MERCHANTS.length,

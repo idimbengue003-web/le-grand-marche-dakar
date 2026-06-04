@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     await db.notification.create({
       data: {
         userId: user.id,
-        title: 'Bienvenue sur Marché Royal!',
+        title: 'Bienvenue sur le Marché de DAKAR!',
         message: `Bienvenue${name ? ` ${name}` : ''}! Votre compte a été créé avec succès en tant que ${userRole === 'acheteur' ? 'acheteur' : 'vendeur'}.`,
         type: 'systeme',
       },

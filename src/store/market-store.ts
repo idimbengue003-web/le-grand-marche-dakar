@@ -4,7 +4,7 @@ export type ViewMode = 'merchant' | 'product'
 export type SortField = 'price' | 'name'
 export type SortOrder = 'asc' | 'desc'
 export type AuthMode = 'login' | 'register'
-export type PageView = 'market' | 'shop' | 'electronics'
+export type PageView = 'market' | 'shop' | 'electronics' | 'alimentaire'
 
 interface Product {
   id: string
@@ -95,6 +95,7 @@ interface MarketState {
   navigateToShop: (merchantId: string) => void
   navigateToMarket: () => void
   navigateToElectronics: () => void
+  navigateToAlimentaire: () => void
 }
 
 export const useMarketStore = create<MarketState>((set) => ({
@@ -136,4 +137,5 @@ export const useMarketStore = create<MarketState>((set) => ({
   navigateToShop: (merchantId) => set({ pageView: 'shop', viewingMerchantId: merchantId, selectedProduct: null }),
   navigateToMarket: () => set({ pageView: 'market', viewingMerchantId: null, selectedProduct: null }),
   navigateToElectronics: () => set({ pageView: 'electronics', viewingMerchantId: null, selectedProduct: null }),
+  navigateToAlimentaire: () => set({ pageView: 'alimentaire', viewingMerchantId: null, selectedProduct: null }),
 }))

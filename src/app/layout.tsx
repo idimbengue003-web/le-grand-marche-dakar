@@ -21,16 +21,16 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Le Grand Marché Royal",
-  description: "Découvrez les trésors de notre marché séculaire — Viandes, Fromages, Vins, Épices et plus encore",
-  keywords: ["marché royal", "produits artisanaux", "fromages", "vins", "viandes", "épices", "France"],
-  authors: [{ name: "Le Grand Marché Royal" }],
+  title: "Le Grand Marché de DAKAR",
+  description: "Découvrez les trésors du marché de Dakar — Viandes, Poissons, Fruits, Épices, Électronique et plus encore",
+  keywords: ["marché dakar", "produits sénégalais", "alimentation", "électronique", "dakar", "sénégal"],
+  authors: [{ name: "Le Grand Marché de DAKAR" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "Le Grand Marché Royal",
-    description: "Découvrez les trésors de notre marché séculaire",
+    title: "Le Grand Marché de DAKAR",
+    description: "Découvrez les trésors du marché de Dakar",
     type: "website",
   },
 };

@@ -101,6 +101,7 @@ model Product {
   price       Float
   unit        String
   image       String
+  images      String    @default("[]") // JSON array of image URLs — max 3 (regular) or 6 (VIP premium_plus)
   inStock     Boolean   @default(true)
   featured    Boolean   @default(false)
   categoryId  String

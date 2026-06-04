@@ -49,6 +49,8 @@ import {
   Package,
   Menu,
   Smartphone,
+  ShoppingBag,
+  Apple,
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -83,6 +85,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel'
 
 import { useMarketStore, type ViewMode } from '@/store/market-store'
 
@@ -121,6 +124,7 @@ interface Product {
   price: number
   unit: string
   image: string
+  images: string[]
   inStock: boolean
   featured: boolean
   categoryId: string
@@ -200,6 +204,28 @@ function getPlanLabel(plan: string): string {
   return 'Gratuit'
 }
 
+function parseProductImages(images: unknown): string[] {
+  try {
+    if (Array.isArray(images)) return images
+    return JSON.parse((images as string) || '[]')
+  } catch {
+    return []
+  }
+}
+
+function getImageLimit(plan: string): number {
+  return plan === 'premium_plus' ? 6 : 3
+}
+
+async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch('/api/upload', { method: 'POST', body: formData })
+  if (!res.ok) throw new Error('Upload failed')
+  const data = await res.json()
+  return data.url
+}
+
 // ─── API Fetchers ────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
@@ -233,7 +259,8 @@ async function fetchProducts(params: {
 
   const res = await fetch(`/api/products?${searchParams.toString()}`)
   if (!res.ok) throw new Error('Failed to fetch products')
-  return res.json()
+  const data = await res.json()
+  return data.map((p: Record<string, unknown>) => ({ ...p, images: parseProductImages(p.images) }))
 }
 
 async function fetchCompetitors(params: {
@@ -246,13 +273,18 @@ async function fetchCompetitors(params: {
 
   const res = await fetch(`/api/products/compare?${searchParams.toString()}`)
   if (!res.ok) throw new Error('Failed to fetch competitors')
-  return res.json()
+  const data = await res.json()
+  return data.map((p: Record<string, unknown>) => ({ ...p, images: parseProductImages(p.images) }))
 }
 
 async function fetchFavorites(): Promise<FavoriteItem[]> {
   const res = await fetch('/api/favorites')
   if (!res.ok) throw new Error('Failed to fetch favorites')
-  return res.json()
+  const data = await res.json()
+  return data.map((f: Record<string, unknown>) => ({
+    ...f,
+    product: { ...(f.product as Record<string, unknown>), images: parseProductImages((f.product as Record<string, unknown>)?.images) },
+  }))
 }
 
 async function toggleFavorite(productId: string): Promise<{ favorited: boolean }> {
@@ -268,13 +300,14 @@ async function toggleFavorite(productId: string): Promise<{ favorited: boolean }
 async function fetchMerchantProducts(merchantId: string): Promise<Product[]> {
   const res = await fetch(`/api/merchants/${merchantId}/products`)
   if (!res.ok) throw new Error('Failed to fetch merchant products')
-  return res.json()
+  const data = await res.json()
+  return data.map((p: Record<string, unknown>) => ({ ...p, images: parseProductImages(p.images) }))
 }
 
 async function updateMerchantProduct(
   merchantId: string,
   productId: string,
-  data: { inStock?: boolean; featured?: boolean }
+  data: { inStock?: boolean; featured?: boolean; images?: string[] }
 ): Promise<Product> {
   const res = await fetch(`/api/merchants/${merchantId}/products`, {
     method: 'PATCH',
@@ -282,12 +315,13 @@ async function updateMerchantProduct(
     body: JSON.stringify({ productId, ...data }),
   })
   if (!res.ok) throw new Error('Failed to update product')
-  return res.json()
+  const result = await res.json()
+  return { ...result, images: parseProductImages(result.images) }
 }
 
 async function createMerchantProduct(merchantId: string, data: {
   name: string; description: string; price: number; unit: string;
-  image: string; categoryId: string; inStock: boolean;
+  image: string; categoryId: string; inStock: boolean; images?: string[];
 }): Promise<Product> {
   const res = await fetch(`/api/merchants/${merchantId}/products`, {
     method: 'POST',
@@ -295,7 +329,8 @@ async function createMerchantProduct(merchantId: string, data: {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error('Failed to create product')
-  return res.json()
+  const result = await res.json()
+  return { ...result, images: parseProductImages(result.images) }
 }
 
 async function deleteMerchantProduct(merchantId: string, productId: string): Promise<void> {
@@ -406,7 +441,7 @@ function AuthModal() {
         window.location.reload()
         return
       }
-      toast({ title: 'Connexion réussie', description: `Bienvenue${loginData.merchantName ? ', ' + loginData.merchantName : ' au Marché Royal'} !` })
+      toast({ title: 'Connexion réussie', description: `Bienvenue${loginData.merchantName ? ', ' + loginData.merchantName : ' au Marché de DAKAR'} !` })
       setAuthModalOpen(false)
       resetForm()
     } catch {
@@ -461,7 +496,7 @@ function AuthModal() {
       if (result?.error) {
         setError('Inscription réussie mais erreur de connexion automatique')
       } else {
-        toast({ title: 'Inscription réussie', description: 'Bienvenue au Marché Royal !' })
+        toast({ title: 'Inscription réussie', description: 'Bienvenue au Marché de DAKAR !' })
         setAuthModalOpen(false)
         resetForm()
       }
@@ -483,7 +518,7 @@ function AuthModal() {
             ⚜ Accès au Marché ⚜
           </DialogTitle>
           <DialogDescription className="text-center text-[#8B4513]/70">
-            Acheteurs et vendeurs, connectez-vous au Marché Royal
+            Acheteurs et vendeurs, connectez-vous au Marché de DAKAR
           </DialogDescription>
         </DialogHeader>
 
@@ -833,7 +868,7 @@ function UserMenu() {
         <DropdownMenuItem
           onClick={() => {
             signOut({ callbackUrl: '/' })
-            toast({ title: 'Déconnexion', description: 'À bientôt au Marché Royal !' })
+            toast({ title: 'Déconnexion', description: 'À bientôt au Marché de DAKAR !' })
           }}
           className="text-red-700 focus:bg-red-50 focus:text-red-800 cursor-pointer"
         >
@@ -909,7 +944,7 @@ function PremiumPlansDialog() {
       <DialogContent className="sm:max-w-2xl bg-[#FFF8DC] border-[#DAA520]/30 max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] text-center text-xl">
-            ⚜ Abonnements Marché Royal ⚜
+            ⚜ Abonnements Marché de DAKAR ⚜
           </DialogTitle>
           <DialogDescription className="text-center text-[#8B4513]/70">
             Choisissez le plan adapté à votre échoppe
@@ -1077,6 +1112,8 @@ function ProductDetailModal() {
     : []
 
   const lowestPrice = allOffers.length > 0 ? allOffers[0].price : selectedProduct?.price
+  const productImages = selectedProduct?.images || []
+  const [fullSizeImage, setFullSizeImage] = useState<string | null>(null)
 
   if (!selectedProduct) return null
 
@@ -1085,12 +1122,62 @@ function ProductDetailModal() {
       <DialogContent className="sm:max-w-lg bg-[#FFF8DC] border-[#DAA520]/30 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-[family-name:var(--font-playfair)] text-[#3D1F1A] flex items-center gap-3">
-            <span className="text-4xl">{selectedProduct.image}</span>
+            {productImages.length === 0 && (
+              <span className="text-4xl">{selectedProduct.image}</span>
+            )}
             <span>{selectedProduct.name}</span>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Image Gallery */}
+          {productImages.length > 0 && (
+            <div className="relative">
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {productImages.map((img, idx) => (
+                    <CarouselItem key={idx}>
+                      <div
+                        className="relative aspect-[4/3] rounded-xl overflow-hidden border border-[#DAA520]/20 shadow-sm cursor-pointer"
+                        onClick={() => setFullSizeImage(img)}
+                      >
+                        <img
+                          src={img}
+                          alt={`${selectedProduct.name} - Photo ${idx + 1}`}
+                          className="size-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {productImages.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-1 size-7 bg-[#3D1F1A]/80 border-0 text-[#FFD700] hover:bg-[#3D1F1A]" />
+                    <CarouselNext className="right-1 size-7 bg-[#3D1F1A]/80 border-0 text-[#FFD700] hover:bg-[#3D1F1A]" />
+                  </>
+                )}
+              </Carousel>
+              {/* Navigation dots */}
+              {productImages.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-2">
+                  {productImages.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="size-2 rounded-full bg-[#DAA520]/30"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Emoji fallback if no images */}
+          {productImages.length === 0 && (
+            <div className="flex items-center justify-center py-6">
+              <span className="text-7xl">{selectedProduct.image}</span>
+            </div>
+          )}
+
           {/* Merchant banner accent */}
           <div
             className="h-1.5 w-full rounded-full"
@@ -1301,6 +1388,20 @@ function ProductDetailModal() {
           </div>
         </div>
       </DialogContent>
+
+      {/* Full-size image overlay */}
+      <Dialog open={!!fullSizeImage} onOpenChange={(open) => !open && setFullSizeImage(null)}>
+        <DialogContent className="sm:max-w-3xl bg-[#3D1F1A]/95 border-0 p-0 overflow-hidden">
+          {fullSizeImage && (
+            <img
+              src={fullSizeImage}
+              alt="Photo agrandie"
+              className="size-full object-contain max-h-[85vh]"
+              onClick={() => setFullSizeImage(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
@@ -1408,6 +1509,12 @@ function MerchantDashboard() {
     categoryId: '',
     inStock: true,
   })
+  const [newProductImages, setNewProductImages] = useState<string[]>([])
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [editingProductImages, setEditingProductImages] = useState<Record<string, string[]>>({})
+  const [editingImageProductId, setEditingImageProductId] = useState<string | null>(null)
+
+  const imageLimit = getImageLimit(plan)
 
   const { data: merchants = [] } = useQuery({
     queryKey: ['merchants'],
@@ -1432,7 +1539,7 @@ function MerchantDashboard() {
   const canAddMore = productCount < planLimit
 
   const updateMutation = useMutation({
-    mutationFn: ({ productId, data }: { productId: string; data: { inStock?: boolean; featured?: boolean } }) =>
+    mutationFn: ({ productId, data }: { productId: string; data: { inStock?: boolean; featured?: boolean; images?: string[] } }) =>
       updateMerchantProduct(merchantId!, productId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['merchant-products', merchantId] })
@@ -1443,13 +1550,14 @@ function MerchantDashboard() {
   const createMutation = useMutation({
     mutationFn: (data: {
       name: string; description: string; price: number; unit: string;
-      image: string; categoryId: string; inStock: boolean;
+      image: string; categoryId: string; inStock: boolean; images?: string[];
     }) => createMerchantProduct(merchantId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['merchant-products', merchantId] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
       toast({ title: 'Produit ajouté !', description: 'Votre produit est maintenant en ligne.' })
       setNewProduct({ name: '', description: '', price: '', unit: 'kg', image: '📦', categoryId: '', inStock: true })
+      setNewProductImages([])
       setShowAddForm(false)
     },
     onError: (error: Error) => {
@@ -1482,7 +1590,36 @@ function MerchantDashboard() {
       image: newProduct.image,
       categoryId: newProduct.categoryId,
       inStock: newProduct.inStock,
+      images: newProductImages.length > 0 ? newProductImages : undefined,
     })
+  }
+
+  const handleImageUpload = async (file: File, targetArray: string[], setTarget: (arr: string[]) => void) => {
+    if (targetArray.length >= imageLimit) {
+      toast({ title: 'Limite atteinte', description: `Maximum ${imageLimit} photos pour votre plan`, variant: 'destructive' })
+      return
+    }
+    setUploadingImage(true)
+    try {
+      const url = await uploadImage(file)
+      setTarget([...targetArray, url])
+    } catch {
+      toast({ title: 'Erreur', description: 'Impossible de télécharger l\'image', variant: 'destructive' })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleSaveProductImages = (productId: string) => {
+    const updatedImages = editingProductImages[productId]
+    if (updatedImages !== undefined) {
+      updateMutation.mutate({
+        productId,
+        data: { images: updatedImages },
+      })
+      toast({ title: 'Photos mises à jour', description: 'Les photos du produit ont été sauvegardées.' })
+      setEditingImageProductId(null)
+    }
   }
 
   const EMOJI_OPTIONS = ['📦', '🥩', '🍖', '🐟', '🐠', '🦐', '🥭', '🍎', '🍊', '🍋', '🍌', '🍍', '🍅', '🧅', '🥬', '🌶️', '🧂', '🍯', '🫙', '🧀', '🍞', '🥖', '🥐', '🍷', '🍹', '🥤', '🍵', '🌿', '🍃', '🐔', '🐦', '🦪', '🫘']
@@ -1659,10 +1796,57 @@ function MerchantDashboard() {
                   </label>
                 </div>
 
+                {/* Image upload section */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-[#8B4513]">
+                      📸 {plan === 'premium_plus' ? 'Photos VIP' : 'Photos'} (max {imageLimit})
+                    </Label>
+                    {plan === 'premium_plus' && (
+                      <Diamond className="size-3.5 text-[#DAA520]" />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {newProductImages.map((img, idx) => (
+                      <div key={idx} className="relative size-16 rounded-lg overflow-hidden border border-[#DAA520]/30 shadow-sm">
+                        <img src={img} alt={`Photo ${idx + 1}`} className="size-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setNewProductImages(newProductImages.filter((_, i) => i !== idx))}
+                          className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] leading-none shadow-sm hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {newProductImages.length < imageLimit && (
+                      <label className={`size-16 rounded-lg border-2 border-dashed border-[#DAA520]/40 flex items-center justify-center cursor-pointer hover:border-[#DAA520]/70 hover:bg-[#FAEBD7]/30 transition-colors ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          disabled={uploadingImage}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageUpload(file, newProductImages, setNewProductImages)
+                            e.target.value = ''
+                          }}
+                        />
+                        {uploadingImage ? (
+                          <div className="size-5 border-2 border-[#DAA520] border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Plus className="size-5 text-[#DAA520]/60" />
+                        )}
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-[#8B4513]/40">JPG, PNG, WebP ou GIF — max 5 Mo par photo</p>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={handleAddProduct}
-                    disabled={createMutation.isPending}
+                    disabled={createMutation.isPending || uploadingImage}
                     size="sm"
                     className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1"
                   >
@@ -1671,7 +1855,7 @@ function MerchantDashboard() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowAddForm(false)}
+                    onClick={() => { setShowAddForm(false); setNewProductImages([]) }}
                     className="text-[#8B4513]/60"
                   >
                     Annuler
@@ -1708,128 +1892,257 @@ function MerchantDashboard() {
             </div>
           ) : (
             <div className="space-y-2 p-1">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center gap-3 rounded-lg border border-[#DAA520]/15 p-3 transition-colors hover:bg-[#FAEBD7]/30"
-                >
-                  <span className="text-2xl shrink-0">{product.image}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium text-[#3D1F1A] truncate">{product.name}</span>
-                      {product.featured && <span className="text-[#DAA520] text-xs">⭐</span>}
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-semibold text-[#8B0000]">{formatPrice(product.price)}</span>
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0"
-                        style={{
-                          backgroundColor: `${product.category.color}10`,
-                          color: product.category.color,
-                          borderColor: `${product.category.color}20`,
-                        }}
-                      >
-                        {product.category.icon} {product.category.name}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Stock toggle */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        updateMutation.mutate({
-                          productId: product.id,
-                          data: { inStock: !product.inStock },
-                        })
-                        toast({
-                          title: product.inStock ? 'Rupture de stock' : 'Remis en stock',
-                          description: product.name,
-                        })
-                      }}
-                      className={`gap-1 text-xs h-8 px-2 ${
-                        product.inStock
-                          ? 'text-green-700 hover:bg-green-50 hover:text-green-800'
-                          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
-                      }`}
-                    >
-                      {product.inStock ? (
-                        <>
-                          <PackageCheck className="size-3.5" />
-                          <span className="hidden sm:inline">Stock</span>
-                        </>
+              {products.map((product) => {
+                const productImages = product.images || []
+                const isEditingImages = editingImageProductId === product.id
+                const currentEditImages = isEditingImages
+                  ? (editingProductImages[product.id] ?? productImages)
+                  : productImages
+
+                return (
+                  <div
+                    key={product.id}
+                    className="rounded-lg border border-[#DAA520]/15 p-3 transition-colors hover:bg-[#FAEBD7]/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Product image or emoji */}
+                      {productImages.length > 0 ? (
+                        <div className="flex -space-x-1 shrink-0">
+                          {productImages.slice(0, 3).map((img, idx) => (
+                            <div key={idx} className="size-9 rounded-lg overflow-hidden border-2 border-[#FFF8DC] shadow-sm">
+                              <img src={img} alt={`${product.name} ${idx + 1}`} className="size-full object-cover" />
+                            </div>
+                          ))}
+                          {productImages.length > 3 && (
+                            <div className="size-9 rounded-lg overflow-hidden border-2 border-[#FFF8DC] bg-[#FAEBD7] flex items-center justify-center text-[10px] font-semibold text-[#8B4513] shadow-sm">
+                              +{productImages.length - 3}
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <>
-                          <PackageX className="size-3.5" />
-                          <span className="hidden sm:inline">Rupture</span>
-                        </>
+                        <span className="text-2xl shrink-0">{product.image}</span>
                       )}
-                    </Button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-[#3D1F1A] truncate">{product.name}</span>
+                          {product.featured && <span className="text-[#DAA520] text-xs">⭐</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs font-semibold text-[#8B0000]">{formatPrice(product.price)}</span>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0"
+                            style={{
+                              backgroundColor: `${product.category.color}10`,
+                              color: product.category.color,
+                              borderColor: `${product.category.color}20`,
+                            }}
+                          >
+                            {product.category.icon} {product.category.name}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Edit images button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (isEditingImages) {
+                              setEditingImageProductId(null)
+                            } else {
+                              setEditingProductImages({ ...editingProductImages, [product.id]: [...productImages] })
+                              setEditingImageProductId(product.id)
+                            }
+                          }}
+                          className="gap-1 text-xs h-8 px-2 text-[#8B4513] hover:bg-[#FAEBD7]"
+                        >
+                          <Edit className="size-3.5" />
+                          <span className="hidden sm:inline">📸</span>
+                        </Button>
 
-                    {/* Featured toggle - only for premium+ */}
-                    {plan === 'premium_plus' ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          updateMutation.mutate({
-                            productId: product.id,
-                            data: { featured: !product.featured },
-                          })
-                          toast({
-                            title: product.featured ? 'Retiré des vedettes' : 'Produit vedette',
-                            description: product.name,
-                          })
-                        }}
-                        className={`gap-1 text-xs h-8 px-2 ${
-                          product.featured
-                            ? 'text-[#DAA520] hover:bg-[#DAA520]/10'
-                            : 'text-[#8B4513]/40 hover:bg-[#FAEBD7] hover:text-[#8B4513]'
-                        }`}
-                      >
-                        {product.featured ? (
-                          <>
-                            <Star className="size-3.5 fill-current" />
-                            <span className="hidden sm:inline">Vedette</span>
-                          </>
+                        {/* Stock toggle */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            updateMutation.mutate({
+                              productId: product.id,
+                              data: { inStock: !product.inStock },
+                            })
+                            toast({
+                              title: product.inStock ? 'Rupture de stock' : 'Remis en stock',
+                              description: product.name,
+                            })
+                          }}
+                          className={`gap-1 text-xs h-8 px-2 ${
+                            product.inStock
+                              ? 'text-green-700 hover:bg-green-50 hover:text-green-800'
+                              : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+                          }`}
+                        >
+                          {product.inStock ? (
+                            <>
+                              <PackageCheck className="size-3.5" />
+                              <span className="hidden sm:inline">Stock</span>
+                            </>
+                          ) : (
+                            <>
+                              <PackageX className="size-3.5" />
+                              <span className="hidden sm:inline">Rupture</span>
+                            </>
+                          )}
+                        </Button>
+
+                        {/* Featured toggle - only for premium+ */}
+                        {plan === 'premium_plus' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              updateMutation.mutate({
+                                productId: product.id,
+                                data: { featured: !product.featured },
+                              })
+                              toast({
+                                title: product.featured ? 'Retiré des vedettes' : 'Produit vedette',
+                                description: product.name,
+                              })
+                            }}
+                            className={`gap-1 text-xs h-8 px-2 ${
+                              product.featured
+                                ? 'text-[#DAA520] hover:bg-[#DAA520]/10'
+                                : 'text-[#8B4513]/40 hover:bg-[#FAEBD7] hover:text-[#8B4513]'
+                            }`}
+                          >
+                            {product.featured ? (
+                              <>
+                                <Star className="size-3.5 fill-current" />
+                                <span className="hidden sm:inline">Vedette</span>
+                              </>
+                            ) : (
+                              <>
+                                <Star className="size-3.5" />
+                                <span className="hidden sm:inline">Normal</span>
+                              </>
+                            )}
+                          </Button>
                         ) : (
-                          <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 text-xs h-8 px-2 text-[#8B4513]/30 cursor-not-allowed"
+                            disabled
+                            title="Passez en Premium+ pour mettre en avant"
+                          >
                             <Star className="size-3.5" />
-                            <span className="hidden sm:inline">Normal</span>
-                          </>
+                            <span className="hidden sm:inline">⬆ Premium+</span>
+                          </Button>
                         )}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1 text-xs h-8 px-2 text-[#8B4513]/30 cursor-not-allowed"
-                        disabled
-                        title="Passez en Premium+ pour mettre en avant"
-                      >
-                        <Star className="size-3.5" />
-                        <span className="hidden sm:inline">⬆ Premium+</span>
-                      </Button>
-                    )}
 
-                    {/* Delete button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm(`Supprimer "${product.name}" ?`)) {
-                          deleteMutation.mutate(product.id)
-                        }
-                      }}
-                      className="gap-1 text-xs h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                        {/* Delete button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`Supprimer "${product.name}" ?`)) {
+                              deleteMutation.mutate(product.id)
+                            }
+                          }}
+                          className="gap-1 text-xs h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Inline image editor */}
+                    {isEditingImages && (
+                      <div className="mt-3 pt-3 border-t border-[#DAA520]/15">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-medium text-[#8B4513]">
+                            📸 Photos ({currentEditImages.length}/{imageLimit})
+                          </span>
+                          {plan === 'premium_plus' && (
+                            <Diamond className="size-3 text-[#DAA520]" />
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentEditImages.map((img, idx) => (
+                            <div key={idx} className="relative size-14 rounded-lg overflow-hidden border border-[#DAA520]/30 shadow-sm">
+                              <img src={img} alt={`Photo ${idx + 1}`} className="size-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = currentEditImages.filter((_, i) => i !== idx)
+                                  setEditingProductImages({ ...editingProductImages, [product.id]: updated })
+                                }}
+                                className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] leading-none shadow-sm hover:bg-red-600"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          {currentEditImages.length < imageLimit && (
+                            <label className={`size-14 rounded-lg border-2 border-dashed border-[#DAA520]/40 flex items-center justify-center cursor-pointer hover:border-[#DAA520]/70 hover:bg-[#FAEBD7]/30 transition-colors ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="hidden"
+                                disabled={uploadingImage}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    if (currentEditImages.length >= imageLimit) {
+                                      toast({ title: 'Limite atteinte', description: `Maximum ${imageLimit} photos`, variant: 'destructive' })
+                                      return
+                                    }
+                                    setUploadingImage(true)
+                                    try {
+                                      const url = await uploadImage(file)
+                                      const updated = [...currentEditImages, url]
+                                      setEditingProductImages({ ...editingProductImages, [product.id]: updated })
+                                    } catch {
+                                      toast({ title: 'Erreur', description: 'Impossible de télécharger l\'image', variant: 'destructive' })
+                                    } finally {
+                                      setUploadingImage(false)
+                                    }
+                                  }
+                                  e.target.value = ''
+                                }}
+                              />
+                              {uploadingImage ? (
+                                <div className="size-4 border-2 border-[#DAA520] border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Plus className="size-4 text-[#DAA520]/60" />
+                              )}
+                            </label>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveProductImages(product.id)}
+                            disabled={updateMutation.isPending}
+                            className="bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-1 h-7 text-xs"
+                          >
+                            <Save className="size-3" />
+                            Sauvegarder
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingImageProductId(null)}
+                            className="h-7 text-xs text-[#8B4513]/60"
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </ScrollArea>
@@ -2641,11 +2954,12 @@ function BuyerSettingsDialog() {
 
 function HamburgerMenu() {
   const [open, setOpen] = useState(false)
-  const { navigateToMarket, navigateToElectronics, navigateToShop, pageView } = useMarketStore()
+  const { navigateToMarket, navigateToElectronics, navigateToAlimentaire, navigateToShop, pageView } = useMarketStore()
   
   const menuItems = [
-    { label: '🏠 Marché Royal', desc: 'Alimentation & courses', action: () => { navigateToMarket(); setOpen(false) }, active: pageView === 'market' },
-    { label: '📱 Électronique', desc: 'Téléphones, PC, Audio...', action: () => { navigateToElectronics(); setOpen(false) }, active: pageView === 'electronics' },
+    { label: '🏠 Accueil', desc: 'Tous les rayons', action: () => { navigateToMarket(); setOpen(false) }, active: pageView === 'market' },
+    { label: '🛒 Rayon Alimentaire', desc: 'Viandes, Poissons, Fruits, Épices...', action: () => { navigateToAlimentaire(); setOpen(false) }, active: pageView === 'alimentaire' },
+    { label: '📱 Rayon Électronique', desc: 'Téléphones, PC, Audio, TV...', action: () => { navigateToElectronics(); setOpen(false) }, active: pageView === 'electronics' },
   ]
 
   return (
@@ -2659,7 +2973,7 @@ function HamburgerMenu() {
         <SheetHeader className="p-4 pb-2 border-b border-[#DAA520]/20">
           <SheetTitle className="font-[family-name:var(--font-playfair)] text-[#FFD700] flex items-center gap-2">
             <span className="text-2xl">👑</span>
-            Le Grand Marché Royal
+            Le Grand Marché de DAKAR
           </SheetTitle>
         </SheetHeader>
         
@@ -2710,7 +3024,7 @@ function HeroSection({
             <HamburgerMenu />
             <span className="text-2xl">👑</span>
             <span className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/80 font-semibold hidden sm:inline">
-              Le Grand Marché Royal
+              Le Grand Marché de DAKAR
             </span>
           </div>
           <UserMenu />
@@ -2734,7 +3048,7 @@ function HeroSection({
           transition={{ duration: 0.8, delay: 0.2 }}
           className="font-[family-name:var(--font-playfair)] text-4xl sm:text-5xl md:text-6xl font-bold text-[#FFD700] tracking-wide drop-shadow-lg"
         >
-          Le Grand Marché Royal
+          Le Grand Marché de DAKAR
         </motion.h1>
 
         <motion.div
@@ -2949,11 +3263,21 @@ function ProductCard({ product }: { product: Product }) {
         />
 
         <CardContent className="p-4 pt-3">
-          {/* Product emoji + info */}
+          {/* Product image or emoji + info */}
           <div className="flex items-start gap-3">
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[#FAEBD7] text-3xl shadow-inner">
-              {product.image}
-            </div>
+            {product.images && product.images.length > 0 ? (
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-inner">
+                <img
+                  src={product.images[0]}
+                  alt={product.name}
+                  className="size-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[#FAEBD7] text-3xl shadow-inner">
+                {product.image}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <h3 className="font-[family-name:var(--font-playfair)] text-base font-semibold text-[#3D1F1A] leading-tight line-clamp-2">
                 {product.name}
@@ -3387,12 +3711,345 @@ function MerchantShopPage() {
         <div className="mx-auto max-w-7xl px-4 py-5 text-center">
           <OrnamentalDivider />
           <p className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/70 mt-2">
-            👑 Le Grand Marché Royal © 2025 👑
+            👑 Le Grand Marché de DAKAR © 2025 👑
           </p>
           <p className="mt-1 text-xs text-[#FAEBD7]/30">
             ☙ Tous les trésors du royaume en un marché ✦
           </p>
         </div>
+      </footer>
+    </div>
+  )
+}
+
+// ─── Alimentaire Page ─────────────────────────────────────────────────────────
+
+function AlimentairePage() {
+  const { navigateToMarket, setSelectedProduct, navigateToShop } = useMarketStore()
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  })
+  const { data: merchants = [] } = useQuery({
+    queryKey: ['merchants'],
+    queryFn: fetchMerchants,
+  })
+  
+  // Food/grocery category slugs (everything EXCEPT electronics)
+  const alimentaireCategorySlugs = [
+    'viandes', 'poissons', 'fruits', 'legumes', 'produits-laitiers',
+    'boulangerie', 'charcuterie', 'volailles', 'epices', 'riz-cereales',
+    'huiles', 'conserves', 'sauces', 'sucres', 'cafe-the', 'boissons',
+    'eau', 'miel-confitures', 'herbes', 'citrons-agrumes', 'fromages',
+    'surgeles', 'hygiene-beaute', 'produits-menagers', 'bebe', 'animaux', 'snacks'
+  ]
+  
+  const alimentaireCategories = categories.filter(c => alimentaireCategorySlugs.includes(c.slug))
+  const alimentaireMerchantIds = new Set<string>()
+  
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => fetchProducts({}),
+  })
+  
+  const alimentaireProducts = allProducts.filter(p => alimentaireCategorySlugs.includes(p.category.slug))
+  
+  alimentaireProducts.forEach(p => alimentaireMerchantIds.add(p.merchantId))
+  const alimentaireMerchants = merchants.filter(m => alimentaireMerchantIds.has(m.id))
+
+  const [selectedAliCat, setSelectedAliCat] = useState<string | null>(null)
+  const [aliSearch, setAliSearch] = useState('')
+  
+  const filteredProducts = alimentaireProducts.filter(p => {
+    if (selectedAliCat && p.category.slug !== selectedAliCat) return false
+    if (aliSearch && !p.name.toLowerCase().includes(aliSearch.toLowerCase())) return false
+    return true
+  })
+
+  // Group categories into sections
+  const rayonFrais = ['viandes', 'poissons', 'fruits', 'legumes', 'produits-laitiers', 'boulangerie', 'charcuterie', 'volailles']
+  const rayonEpicerie = ['epices', 'riz-cereales', 'huiles', 'conserves', 'sauces', 'sucres', 'cafe-the']
+  const rayonBoissons = ['boissons', 'eau']
+  const rayonSpecialites = ['miel-confitures', 'herbes', 'citrons-agrumes', 'fromages']
+  const rayonAutres = ['surgeles', 'hygiene-beaute', 'produits-menagers', 'bebe', 'animaux', 'snacks']
+
+  const getCategorySection = (slug: string) => {
+    if (rayonFrais.includes(slug)) return 'Rayon Frais'
+    if (rayonEpicerie.includes(slug)) return 'Rayon Épicerie'
+    if (rayonBoissons.includes(slug)) return 'Rayon Boissons'
+    if (rayonSpecialites.includes(slug)) return 'Spécialités'
+    if (rayonAutres.includes(slug)) return 'Maison & Autres'
+    return 'Autres'
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FFF8DC]">
+      {/* Header */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-[#8B0000] via-[#A0522D] to-[#FFF8DC]">
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HamburgerMenu />
+              <span className="text-2xl">🛒</span>
+              <span className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/80 font-semibold hidden sm:inline">
+                Alimentaire
+              </span>
+            </div>
+            <UserMenu />
+          </div>
+        </div>
+        
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pt-6 pb-8 text-center">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-2">
+            <span className="text-5xl">🛒</span>
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="font-[family-name:var(--font-playfair)] text-3xl sm:text-4xl md:text-5xl font-bold text-[#FFD700] tracking-wide drop-shadow-lg"
+          >
+            Rayon Alimentaire
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-2 font-[family-name:var(--font-playfair)] text-base text-[#FAEBD7]/70 italic"
+          >
+            Viandes, Poissons, Fruits, Épices — la fraîcheur de Dakar
+          </motion.p>
+          
+          {/* Search */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="mx-auto mt-4 max-w-xl">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B4513]/50" />
+              <Input
+                type="text"
+                placeholder="Chercher un produit alimentaire..."
+                value={aliSearch}
+                onChange={(e) => setAliSearch(e.target.value)}
+                className="h-11 w-full rounded-full border-[#DAA520]/30 bg-[#FFF8DC]/90 pl-10 pr-10 text-[#3D1F1A] placeholder:text-[#8B4513]/40 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 shadow-lg backdrop-blur-sm"
+              />
+              {aliSearch && (
+                <button onClick={() => setAliSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B4513]/50 hover:text-[#8B4513]">
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+        <div className="relative h-3 bg-gradient-to-r from-[#8B0000] via-[#DAA520] to-[#8B0000]" />
+      </div>
+
+      {/* Alimentaire category filter */}
+      <div className="sticky top-0 z-20 border-b border-[#DAA520]/20 bg-[#FFF8DC]/95 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-2 pb-1">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedAliCat(null)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all whitespace-nowrap border ${
+                  selectedAliCat === null
+                    ? 'bg-[#8B0000] text-[#FFD700] border-[#DAA520] shadow-lg'
+                    : 'bg-[#FAEBD7]/60 text-[#8B4513] border-[#DAA520]/30 hover:bg-[#FAEBD7]'
+                }`}
+              >
+                <Sparkles className="size-3.5" />
+                Toutes
+              </motion.button>
+              {alimentaireCategories.map((cat) => (
+                <motion.button
+                  key={cat.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedAliCat(selectedAliCat === cat.slug ? null : cat.slug)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all whitespace-nowrap border ${
+                    selectedAliCat === cat.slug
+                      ? 'text-white border-transparent shadow-lg'
+                      : 'bg-[#FAEBD7]/60 text-[#8B4513] border-[#DAA520]/30 hover:bg-[#FAEBD7]'
+                  }`}
+                  style={selectedAliCat === cat.slug ? { backgroundColor: cat.color, borderColor: cat.color } : undefined}
+                >
+                  <span className="text-base">{cat.icon}</span>
+                  {cat.name}
+                </motion.button>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        {/* Featured merchants */}
+        {alimentaireMerchants.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#3D1F1A] mb-4 flex items-center gap-2">
+              <Store className="size-5 text-[#8B0000]" />
+              Vendeurs Alimentaire
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {alimentaireMerchants.map((merchant) => (
+                <motion.div
+                  key={merchant.id}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigateToShop(merchant.id)}
+                  className="cursor-pointer rounded-xl border-2 border-[#DAA520]/20 bg-white/60 p-3 text-center transition-all hover:border-[#DAA520]/50 hover:shadow-lg"
+                >
+                  <div className="text-3xl mb-2">{merchant.image}</div>
+                  <p className="font-semibold text-sm text-[#3D1F1A] truncate">{merchant.name}</p>
+                  <StarRating rating={merchant.rating} />
+                  <p className="text-[10px] text-[#8B4513]/50 mt-1">{getQuartier(merchant.location)}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <OrnamentalDivider />
+
+        {/* Products grid - grouped by section when no category filter */}
+        <div className="mt-6">
+          {!selectedAliCat ? (
+            // Show products grouped by rayon
+            <>
+              {['Rayon Frais', 'Rayon Épicerie', 'Rayon Boissons', 'Spécialités', 'Maison & Autres'].map(section => {
+                const sectionProducts = filteredProducts.filter(p => getCategorySection(p.category.slug) === section)
+                if (sectionProducts.length === 0) return null
+                const sectionEmoji = section === 'Rayon Frais' ? '🥩' : section === 'Rayon Épicerie' ? '🌾' : section === 'Rayon Boissons' ? '🍷' : section === 'Spécialités' ? '🍯' : '🏠'
+                return (
+                  <div key={section} className="mb-8">
+                    <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#3D1F1A] mb-4 flex items-center gap-2">
+                      <span className="text-xl">{sectionEmoji}</span>
+                      {section}
+                      <span className="text-sm font-normal text-[#8B4513]/50">({sectionProducts.length})</span>
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {sectionProducts.map((product) => (
+                        <motion.div
+                          key={product.id}
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          whileHover={{ y: -3 }}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedProduct(product)}
+                        >
+                          <Card className="overflow-hidden border-[#DAA520]/20 bg-white/80 hover:border-[#DAA520]/50 hover:shadow-lg transition-all h-full">
+                            <div className="h-1" style={{ backgroundColor: product.merchant.banner }} />
+                            <CardContent className="p-3">
+                              <div className="text-center mb-2">
+                                {product.images && product.images.length > 0 ? (
+                                  <img src={product.images[0]} alt={product.name} className="w-full h-20 object-cover rounded-md" />
+                                ) : (
+                                  <span className="text-4xl">{product.image}</span>
+                                )}
+                              </div>
+                              <h3 className="font-semibold text-xs text-[#3D1F1A] truncate">{product.name}</h3>
+                              <p className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#8B0000] mt-1">
+                                {formatPrice(product.price)}
+                              </p>
+                              {product.unit && product.unit !== 'pièce' && (
+                                <p className="text-[10px] text-[#8B4513]/50">/ {product.unit}</p>
+                              )}
+                              <div className="flex items-center gap-1 mt-1.5">
+                                <span className="text-xs">{product.merchant.image}</span>
+                                <span className="text-[10px] text-[#8B4513]/50 truncate">{product.merchant.name}</span>
+                              </div>
+                              {product.featured && (
+                                <Badge className="mt-1.5 bg-gradient-to-r from-[#DAA520] to-[#FFD700] text-[#3D1F1A] border-0 text-[9px] px-1.5 py-0">
+                                  ⭐ Coup de Cœur
+                                </Badge>
+                              )}
+                              {!product.inStock && (
+                                <Badge className="mt-1.5 bg-red-100 text-red-700 border-0 text-[9px] px-1.5 py-0">
+                                  Rupture
+                                </Badge>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          ) : (
+            // Show filtered products flat
+            <>
+              <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#3D1F1A] mb-4 flex items-center gap-2">
+                <ShoppingBag className="size-5 text-[#8B0000]" />
+                Produits
+                <span className="text-sm font-normal text-[#8B4513]/50">({filteredProducts.length})</span>
+              </h2>
+              
+              {filteredProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingBag className="size-12 text-[#DAA520]/30 mx-auto mb-3" />
+                  <p className="text-[#8B4513]/60">Aucun produit trouvé</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {filteredProducts.map((product) => (
+                    <motion.div
+                      key={product.id}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -3 }}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedProduct(product)}
+                    >
+                      <Card className="overflow-hidden border-[#DAA520]/20 bg-white/80 hover:border-[#DAA520]/50 hover:shadow-lg transition-all h-full">
+                        <div className="h-1" style={{ backgroundColor: product.merchant.banner }} />
+                        <CardContent className="p-3">
+                          <div className="text-center mb-2">
+                            {product.images && product.images.length > 0 ? (
+                              <img src={product.images[0]} alt={product.name} className="w-full h-20 object-cover rounded-md" />
+                            ) : (
+                              <span className="text-4xl">{product.image}</span>
+                            )}
+                          </div>
+                          <h3 className="font-semibold text-xs text-[#3D1F1A] truncate">{product.name}</h3>
+                          <p className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#8B0000] mt-1">
+                            {formatPrice(product.price)}
+                          </p>
+                          {product.unit && product.unit !== 'pièce' && (
+                            <p className="text-[10px] text-[#8B4513]/50">/ {product.unit}</p>
+                          )}
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <span className="text-xs">{product.merchant.image}</span>
+                            <span className="text-[10px] text-[#8B4513]/50 truncate">{product.merchant.name}</span>
+                          </div>
+                          {product.featured && (
+                            <Badge className="mt-1.5 bg-gradient-to-r from-[#DAA520] to-[#FFD700] text-[#3D1F1A] border-0 text-[9px] px-1.5 py-0">
+                              ⭐ Coup de Cœur
+                            </Badge>
+                          )}
+                          {!product.inStock && (
+                            <Badge className="mt-1.5 bg-red-100 text-red-700 border-0 text-[9px] px-1.5 py-0">
+                              Rupture
+                            </Badge>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="mt-auto bg-[#2C1810] py-6 text-center">
+        <p className="text-[#DAA520]/50 text-xs">
+          ⚜ Le Grand Marché de DAKAR — Rayon Alimentaire ⚜
+        </p>
       </footer>
     </div>
   )
@@ -3633,7 +4290,7 @@ function ElectronicsPage() {
       {/* Footer */}
       <footer className="mt-auto bg-[#2C1810] py-6 text-center">
         <p className="text-[#DAA520]/50 text-xs">
-          ⚜ Le Grand Marché Royal — Rayon Électronique ⚜
+          ⚜ Le Grand Marché de DAKAR — Rayon Électronique ⚜
         </p>
       </footer>
     </div>
@@ -3723,6 +4380,22 @@ export default function HomePage() {
   const filteredMerchants = merchants.filter(
     (m) => (merchantProductMap.get(m.id)?.length || 0) > 0
   )
+
+  // Render alimentaire page
+  if (pageView === 'alimentaire') {
+    return (
+      <>
+        <AlimentairePage />
+        {/* Shared modals */}
+        <AuthModal />
+        <ProductDetailModal />
+        <FavoritesPanel />
+        <MerchantDashboard />
+        <PremiumPlansDialog />
+        <BuyerSettingsDialog />
+      </>
+    )
+  }
 
   // Render electronics page
   if (pageView === 'electronics') {
@@ -3911,7 +4584,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-5 text-center">
           <OrnamentalDivider />
           <p className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/70 mt-2">
-            👑 Le Grand Marché Royal © 2025 👑
+            👑 Le Grand Marché de DAKAR © 2025 👑
           </p>
           <p className="mt-1 text-xs text-[#FAEBD7]/30">
             ☙ Tous les trésors du royaume en un marché ✦

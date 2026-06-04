@@ -40,7 +40,7 @@ export async function POST(
     }
 
     const body = await req.json()
-    const { name, description, price, unit, image, categoryId, inStock } = body
+    const { name, description, price, unit, image, images, categoryId, inStock } = body
 
     if (!name || !price || !unit || !categoryId) {
       return NextResponse.json({ error: 'Nom, prix, unité et catégorie requis' }, { status: 400 })
@@ -57,6 +57,13 @@ export async function POST(
       return NextResponse.json({ error: 'Limite atteinte (50 produits). Passez en Premium+ pour illimité !' }, { status: 403 })
     }
 
+    // Validate images count based on plan
+    const maxImages = plan === 'premium_plus' ? 6 : 3
+    let validatedImages: string[] = []
+    if (images && Array.isArray(images)) {
+      validatedImages = images.slice(0, maxImages)
+    }
+
     const product = await db.product.create({
       data: {
         name,
@@ -64,6 +71,7 @@ export async function POST(
         price: parseFloat(price),
         unit,
         image: image || '📦',
+        images: JSON.stringify(validatedImages),
         inStock: inStock !== undefined ? inStock : true,
         featured: false, // Only premium+ can feature
         categoryId,
@@ -99,6 +107,14 @@ export async function PATCH(
       const plan = (session.user as any)?.plan || 'gratuit'
       if (data.featured && plan !== 'premium_plus') {
         delete data.featured
+      }
+
+      // Handle images validation if being updated
+      if (data.images !== undefined) {
+        const plan = (session.user as any)?.plan || 'gratuit'
+        const maxImages = plan === 'premium_plus' ? 6 : 3
+        const imgArr = Array.isArray(data.images) ? data.images : []
+        data.images = JSON.stringify(imgArr.slice(0, maxImages))
       }
 
       // Allow price/description update for all
