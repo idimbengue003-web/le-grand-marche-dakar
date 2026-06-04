@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   allowedDevOrigins: [
-    "space-z.ai",
-    "z-ai.dev",
+    "*.space-z.ai",
+    "*.z-ai.dev",
   ],
 };
 
