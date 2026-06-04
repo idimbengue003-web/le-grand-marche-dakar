@@ -58,5 +58,21 @@ db/*.sqlite
 *.db-journal
 public/uploads/*
 
-# Skills directory
+# Skills directory (internal tools)
 /skills/
+
+# Sandbox/agent artifacts
+agent-ctx/
+.zscripts/
+download/
+examples/
+mini-services/
+--timeout
+screenshot*.png
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Caddy config (sandbox-specific)
+Caddyfile
