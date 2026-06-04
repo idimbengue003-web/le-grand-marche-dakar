@@ -26,8 +26,9 @@ const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN || ''
 
 async function main() {
   if (!TURSO_URL || !TURSO_TOKEN) {
-    console.error('Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN')
-    process.exit(1)
+    console.warn('⚠️ TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not set. Skipping Turso setup.')
+    console.warn('⚠️ Set these env vars on Vercel: TURSO_DATABASE_URL, TURSO_AUTH_TOKEN')
+    return
   }
 
   const client = createClient({

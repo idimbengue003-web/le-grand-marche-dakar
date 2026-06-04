@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "prisma generate && node prisma/setup-turso.mjs && next build",
+    "build": "DATABASE_URL=file:./dev.db prisma generate && node prisma/setup-turso.mjs && next build",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "postinstall": "prisma generate",
@@ -22,7 +22,7 @@
     "@libsql/client": "^0.17.3",
     "@mdxeditor/editor": "^3.39.1",
     "@next-auth/prisma-adapter": "^1.0.7",
-    "@prisma/adapter-libsql": "^7.8.0",
+    "@prisma/adapter-libsql": "6.19.2",
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
