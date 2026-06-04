@@ -42,14 +42,17 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Login error:', error)
 
-    const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion'
-    if (errorMessage.includes('P1001') || errorMessage.includes('P1002') || errorMessage.includes('P1003')) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('P1001') || errorMessage.includes('P1002') || errorMessage.includes('P1003') || errorMessage.includes('not configured') || errorMessage.includes('TURSO')) {
       return NextResponse.json(
-        { error: 'Base de données non disponible. Veuillez réessayer dans quelques secondes.' },
+        { error: 'Base de données non configurée. Vérifiez les variables TURSO_DATABASE_URL et TURSO_AUTH_TOKEN sur Vercel.' },
         { status: 503 }
       )
     }
 
-    return NextResponse.json({ error: 'Erreur de connexion. Veuillez réessayer.' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Erreur de connexion. Veuillez réessayer.', debug: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { status: 500 }
+    )
   }
 }

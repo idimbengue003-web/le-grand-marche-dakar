@@ -11,20 +11,40 @@ function createDb(): PrismaClient {
 
   if (tursoUrl && tursoAuth) {
     // Turso (libSQL) — production on Vercel
-    // PrismaLibSql accepts a config object, NOT an existing client
-    const adapter = new PrismaLibSQL({
-      url: tursoUrl,
-      authToken: tursoAuth,
-    })
-    return new PrismaClient({ adapter })
+    console.log('[db] Connecting to Turso:', tursoUrl.substring(0, 30) + '...')
+    try {
+      const adapter = new PrismaLibSQL({
+        url: tursoUrl,
+        authToken: tursoAuth,
+      })
+      return new PrismaClient({ adapter })
+    } catch (err) {
+      console.error('[db] Turso adapter error:', err)
+      throw err
+    }
   }
 
-  // Local SQLite — development
+  // Local SQLite — development only
+  console.log('[db] Using local SQLite (development)')
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query'] : [],
   })
 }
 
-export const db = globalForPrisma.db ?? createDb()
+let dbInstance: PrismaClient
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.db = db
+try {
+  dbInstance = globalForPrisma.db ?? createDb()
+  if (process.env.NODE_ENV !== 'production') globalForPrisma.db = dbInstance
+} catch (err) {
+  console.error('[db] FATAL: Could not create database client:', err)
+  // Create a fallback that will throw clear errors
+  dbInstance = new Proxy({} as PrismaClient, {
+    get(_target, prop) {
+      if (prop === '$connect' || prop === '$disconnect') return async () => {}
+      return () => { throw new Error('Database not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN env vars.') }
+    }
+  })
+}
+
+export const db = dbInstance

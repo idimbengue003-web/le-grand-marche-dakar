@@ -199,15 +199,26 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Register error:', error)
 
-    // Handle Prisma connection errors (common on Vercel with SQLite)
-    const errorMessage = error instanceof Error ? error.message : 'Erreur serveur'
-    if (errorMessage.includes('P1001') || errorMessage.includes('P1002') || errorMessage.includes('P1003')) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+
+    // Handle Prisma connection errors
+    if (errorMessage.includes('P1001') || errorMessage.includes('P1002') || errorMessage.includes('P1003') || errorMessage.includes('not configured') || errorMessage.includes('TURSO')) {
       return NextResponse.json(
-        { error: 'Base de données non disponible. Veuillez réessayer dans quelques secondes.' },
+        { error: 'Base de données non configurée. Vérifiez les variables TURSO_DATABASE_URL et TURSO_AUTH_TOKEN sur Vercel.' },
         { status: 503 }
       )
     }
 
-    return NextResponse.json({ error: 'Erreur serveur. Veuillez réessayer.' }, { status: 500 })
+    if (errorMessage.includes('unique') || errorMessage.includes('UNIQUE')) {
+      return NextResponse.json(
+        { error: 'Cet email est déjà utilisé' },
+        { status: 409 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Erreur serveur. Veuillez réessayer.', debug: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { status: 500 }
+    )
   }
 }
