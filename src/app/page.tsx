@@ -4406,10 +4406,17 @@ function ElectronicsPage() {
           </h2>
           
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-12">
-              <Smartphone className="size-12 text-[#DAA520]/30 mx-auto mb-3" />
-              <p className="text-[#8B4513]/60">Aucun produit en électronique pour le moment.</p>
-              <p className="text-sm text-[#8B4513]/40 mt-1">Les vendeurs arrivent bientôt!</p>
+            <div className="text-center py-16">
+              <Smartphone className="size-16 text-[#DAA520]/30 mx-auto mb-4" />
+              <p className="font-[family-name:var(--font-playfair)] text-lg font-semibold text-[#3D1F1A]">Rayon Électronique — Bientôt disponible</p>
+              <p className="text-sm text-[#8B4513]/50 mt-2 max-w-sm mx-auto">Les vendeurs en électronique de Dakar arrivent bientôt ! Inscrivez-vous pour proposer vos produits.</p>
+              <Button
+                className="mt-4 bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] gap-2 text-sm"
+                onClick={() => useMarketStore.getState().setAuthModalOpen(true)}
+              >
+                <Store className="size-4" />
+                Devenir Vendeur
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -4491,20 +4498,6 @@ export default function HomePage() {
 
   const { data: session } = useSession()
 
-  // Seed database on mount
-  const seedMutation = useMutation({
-    mutationFn: seedDatabase,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      queryClient.invalidateQueries({ queryKey: ['merchants'] })
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-    },
-  })
-
-  useEffect(() => {
-    seedMutation.mutate()
-  }, [])
-
   // Fetch data
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
@@ -4533,6 +4526,22 @@ export default function HomePage() {
     queryFn: fetchFavorites,
     enabled: !!session,
   })
+
+  // Seed database categories on first load (only if empty)
+  const seedMutation = useMutation({
+    mutationFn: seedDatabase,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['merchants'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+
+  useEffect(() => {
+    if (categories.length === 0 && !categoriesLoading) {
+      seedMutation.mutate()
+    }
+  }, [categories.length, categoriesLoading])
 
   const currentMerchantId = (session?.user as Record<string, unknown>)?.merchantId as string | undefined
 
@@ -4698,6 +4707,27 @@ export default function HomePage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          ) : products.length === 0 && merchants.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <span className="text-7xl mb-6">🏰</span>
+              <h3 className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#3D1F1A]">
+                Le Marché ouvre bientôt !
+              </h3>
+              <div className="h-px w-32 bg-gradient-to-r from-transparent via-[#DAA520] to-transparent my-4" />
+              <p className="text-[#8B4513]/70 max-w-md leading-relaxed">
+                Les vendeurs de Dakar arrivent ! Inscrivez-vous dès maintenant pour être parmi les premiers à proposer vos produits.
+              </p>
+              <Button
+                className="mt-6 bg-[#8B0000] hover:bg-[#6B0000] text-[#FFD700] font-semibold gap-2 shadow-lg"
+                onClick={() => useMarketStore.getState().setAuthModalOpen(true)}
+              >
+                <Store className="size-4" />
+                Devenir Vendeur
+              </Button>
+              <p className="mt-4 text-xs text-[#8B4513]/40">
+                🛒 Acheteurs, restez connectés — les meilleures offres arrivent !
+              </p>
             </div>
           ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
