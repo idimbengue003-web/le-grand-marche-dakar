@@ -47,6 +47,8 @@ import {
   Trash,
   EyeOff,
   Package,
+  Menu,
+  Smartphone,
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
@@ -80,6 +82,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 import { useMarketStore, type ViewMode } from '@/store/market-store'
 
@@ -2634,6 +2637,61 @@ function BuyerSettingsDialog() {
   )
 }
 
+// ─── Hamburger Menu ─────────────────────────────────────────────────────────
+
+function HamburgerMenu() {
+  const [open, setOpen] = useState(false)
+  const { navigateToMarket, navigateToElectronics, navigateToShop, pageView } = useMarketStore()
+  
+  const menuItems = [
+    { label: '🏠 Marché Royal', desc: 'Alimentation & courses', action: () => { navigateToMarket(); setOpen(false) }, active: pageView === 'market' },
+    { label: '📱 Électronique', desc: 'Téléphones, PC, Audio...', action: () => { navigateToElectronics(); setOpen(false) }, active: pageView === 'electronics' },
+  ]
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-[#FFD700] hover:bg-[#FFD700]/10 hover:text-[#FFD700]">
+          <Menu className="size-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72 bg-[#2C1810] border-[#DAA520]/30 text-[#FFF8DC] p-0">
+        <SheetHeader className="p-4 pb-2 border-b border-[#DAA520]/20">
+          <SheetTitle className="font-[family-name:var(--font-playfair)] text-[#FFD700] flex items-center gap-2">
+            <span className="text-2xl">👑</span>
+            Le Grand Marché Royal
+          </SheetTitle>
+        </SheetHeader>
+        
+        <div className="p-4 space-y-1">
+          {menuItems.map((item, i) => (
+            <button
+              key={i}
+              onClick={item.action}
+              className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all ${
+                item.active
+                  ? 'bg-[#8B0000]/30 text-[#FFD700] border border-[#DAA520]/30'
+                  : 'text-[#FAEBD7]/80 hover:bg-[#DAA520]/10 hover:text-[#FFD700]'
+              }`}
+            >
+              <div>
+                <div className="font-semibold text-sm">{item.label}</div>
+                <div className="text-xs opacity-60">{item.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+        
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#DAA520]/20">
+          <p className="text-xs text-[#DAA520]/40 text-center">
+            ⚜ Dakar, Sénégal ⚜
+          </p>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 // ─── Hero Section ────────────────────────────────────────────────────────────
 
 function HeroSection({
@@ -2649,6 +2707,7 @@ function HeroSection({
       <div className="relative z-10 mx-auto max-w-5xl px-4 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <HamburgerMenu />
             <span className="text-2xl">👑</span>
             <span className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/80 font-semibold hidden sm:inline">
               Le Grand Marché Royal
@@ -3339,6 +3398,248 @@ function MerchantShopPage() {
   )
 }
 
+// ─── Electronics Page ─────────────────────────────────────────────────────────
+
+function ElectronicsPage() {
+  const { navigateToMarket, setSelectedProduct, navigateToShop } = useMarketStore()
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  })
+  const { data: merchants = [] } = useQuery({
+    queryKey: ['merchants'],
+    queryFn: fetchMerchants,
+  })
+  
+  const electronicsCategorySlugs = [
+    'telephones-tablettes', 'ordinateurs-accessoires', 'audio-casques',
+    'tv-ecrans', 'photo-video', 'gaming-consoles', 'electromenager',
+    'chargeurs-cables', 'stockage-memoires'
+  ]
+  
+  const electronicsCategories = categories.filter(c => electronicsCategorySlugs.includes(c.slug))
+  const electronicsMerchantIds = new Set<string>()
+  
+  // Find products for each electronics category
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => fetchProducts({}),
+  })
+  
+  const electronicsProducts = allProducts.filter(p => electronicsCategorySlugs.includes(p.category.slug))
+  
+  // Find unique electronics merchants
+  electronicsProducts.forEach(p => electronicsMerchantIds.add(p.merchantId))
+  const electronicsMerchants = merchants.filter(m => electronicsMerchantIds.has(m.id))
+
+  const [selectedElecCat, setSelectedElecCat] = useState<string | null>(null)
+  const [elecSearch, setElecSearch] = useState('')
+  
+  const filteredProducts = electronicsProducts.filter(p => {
+    if (selectedElecCat && p.category.slug !== selectedElecCat) return false
+    if (elecSearch && !p.name.toLowerCase().includes(elecSearch.toLowerCase())) return false
+    return true
+  })
+
+  return (
+    <div className="min-h-screen bg-[#FFF8DC]">
+      {/* Header */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#FFF8DC]">
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HamburgerMenu />
+              <span className="text-2xl">📱</span>
+              <span className="font-[family-name:var(--font-playfair)] text-sm text-[#FFD700]/80 font-semibold hidden sm:inline">
+                Électronique
+              </span>
+            </div>
+            <UserMenu />
+          </div>
+        </div>
+        
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pt-6 pb-8 text-center">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-2">
+            <span className="text-5xl">📱</span>
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="font-[family-name:var(--font-playfair)] text-3xl sm:text-4xl md:text-5xl font-bold text-[#FFD700] tracking-wide drop-shadow-lg"
+          >
+            Rayon Électronique
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-2 font-[family-name:var(--font-playfair)] text-base text-[#FAEBD7]/70 italic"
+          >
+            Smartphones, PC, Audio, TV & plus — les meilleurs prix de Dakar
+          </motion.p>
+          
+          {/* Search */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="mx-auto mt-4 max-w-xl">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8B4513]/50" />
+              <Input
+                type="text"
+                placeholder="Chercher un produit électronique..."
+                value={elecSearch}
+                onChange={(e) => setElecSearch(e.target.value)}
+                className="h-11 w-full rounded-full border-[#DAA520]/30 bg-[#FFF8DC]/90 pl-10 pr-10 text-[#3D1F1A] placeholder:text-[#8B4513]/40 focus-visible:border-[#DAA520] focus-visible:ring-[#DAA520]/30 shadow-lg backdrop-blur-sm"
+              />
+              {elecSearch && (
+                <button onClick={() => setElecSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B4513]/50 hover:text-[#8B4513]">
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+        <div className="relative h-3 bg-gradient-to-r from-[#1a1a2e] via-[#DAA520] to-[#1a1a2e]" />
+      </div>
+
+      {/* Electronics category filter */}
+      <div className="sticky top-0 z-20 border-b border-[#DAA520]/20 bg-[#FFF8DC]/95 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-2 pb-1">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedElecCat(null)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all whitespace-nowrap border ${
+                  selectedElecCat === null
+                    ? 'bg-[#1a1a2e] text-[#FFD700] border-[#DAA520] shadow-lg'
+                    : 'bg-[#FAEBD7]/60 text-[#8B4513] border-[#DAA520]/30 hover:bg-[#FAEBD7]'
+                }`}
+              >
+                <Sparkles className="size-3.5" />
+                Toutes
+              </motion.button>
+              {electronicsCategories.map((cat) => (
+                <motion.button
+                  key={cat.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedElecCat(selectedElecCat === cat.slug ? null : cat.slug)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all whitespace-nowrap border ${
+                    selectedElecCat === cat.slug
+                      ? 'text-white border-transparent shadow-lg'
+                      : 'bg-[#FAEBD7]/60 text-[#8B4513] border-[#DAA520]/30 hover:bg-[#FAEBD7]'
+                  }`}
+                  style={selectedElecCat === cat.slug ? { backgroundColor: cat.color, borderColor: cat.color } : undefined}
+                >
+                  <span className="text-base">{cat.icon}</span>
+                  {cat.name}
+                </motion.button>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        {/* Featured merchants */}
+        {electronicsMerchants.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#3D1F1A] mb-4 flex items-center gap-2">
+              <Store className="size-5 text-[#1a1a2e]" />
+              Vendeurs Électronique
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {electronicsMerchants.map((merchant) => (
+                <motion.div
+                  key={merchant.id}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigateToShop(merchant.id)}
+                  className="cursor-pointer rounded-xl border-2 border-[#DAA520]/20 bg-white/60 p-3 text-center transition-all hover:border-[#DAA520]/50 hover:shadow-lg"
+                >
+                  <div className="text-3xl mb-2">{merchant.image}</div>
+                  <p className="font-semibold text-sm text-[#3D1F1A] truncate">{merchant.name}</p>
+                  <StarRating rating={merchant.rating} />
+                  <p className="text-[10px] text-[#8B4513]/50 mt-1">{getQuartier(merchant.location)}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <OrnamentalDivider />
+
+        {/* Products grid */}
+        <div className="mt-6">
+          <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#3D1F1A] mb-4 flex items-center gap-2">
+            <Smartphone className="size-5 text-[#1a1a2e]" />
+            Produits Électronique
+            <span className="text-sm font-normal text-[#8B4513]/50">({filteredProducts.length})</span>
+          </h2>
+          
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <Smartphone className="size-12 text-[#DAA520]/30 mx-auto mb-3" />
+              <p className="text-[#8B4513]/60">Aucun produit trouvé</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {filteredProducts.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -3 }}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedProduct(product)}
+                >
+                  <Card className="overflow-hidden border-[#DAA520]/20 bg-white/80 hover:border-[#DAA520]/50 hover:shadow-lg transition-all h-full">
+                    <div className="h-1" style={{ backgroundColor: product.merchant.banner }} />
+                    <CardContent className="p-3">
+                      <div className="text-center mb-2">
+                        <span className="text-4xl">{product.image}</span>
+                      </div>
+                      <h3 className="font-semibold text-xs text-[#3D1F1A] truncate">{product.name}</h3>
+                      <p className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#8B0000] mt-1">
+                        {formatPrice(product.price)}
+                      </p>
+                      {product.unit && product.unit !== 'pièce' && (
+                        <p className="text-[10px] text-[#8B4513]/50">/ {product.unit}</p>
+                      )}
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <span className="text-xs">{product.merchant.image}</span>
+                        <span className="text-[10px] text-[#8B4513]/50 truncate">{product.merchant.name}</span>
+                      </div>
+                      {product.featured && (
+                        <Badge className="mt-1.5 bg-gradient-to-r from-[#DAA520] to-[#FFD700] text-[#3D1F1A] border-0 text-[9px] px-1.5 py-0">
+                          ⭐ Coup de Cœur
+                        </Badge>
+                      )}
+                      {!product.inStock && (
+                        <Badge className="mt-1.5 bg-red-100 text-red-700 border-0 text-[9px] px-1.5 py-0">
+                          Rupture
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="mt-auto bg-[#2C1810] py-6 text-center">
+        <p className="text-[#DAA520]/50 text-xs">
+          ⚜ Le Grand Marché Royal — Rayon Électronique ⚜
+        </p>
+      </footer>
+    </div>
+  )
+}
+
 // ─── Main Page Component ─────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -3422,6 +3723,22 @@ export default function HomePage() {
   const filteredMerchants = merchants.filter(
     (m) => (merchantProductMap.get(m.id)?.length || 0) > 0
   )
+
+  // Render electronics page
+  if (pageView === 'electronics') {
+    return (
+      <>
+        <ElectronicsPage />
+        {/* Shared modals */}
+        <AuthModal />
+        <ProductDetailModal />
+        <FavoritesPanel />
+        <MerchantDashboard />
+        <PremiumPlansDialog />
+        <BuyerSettingsDialog />
+      </>
+    )
+  }
 
   // Render shop page
   if (pageView === 'shop') {
