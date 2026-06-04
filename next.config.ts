@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
     "*.space-z.ai",
     "*.z-ai.dev",
   ],
+  serverExternalPackages: ["@libsql/client", "@prisma/adapter-libsql"],
+  env: {
+    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
+    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+  },
 };
 
 export default nextConfig;
