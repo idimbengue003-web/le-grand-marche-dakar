@@ -198,6 +198,16 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('Register error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+
+    // Handle Prisma connection errors (common on Vercel with SQLite)
+    const errorMessage = error instanceof Error ? error.message : 'Erreur serveur'
+    if (errorMessage.includes('P1001') || errorMessage.includes('P1002') || errorMessage.includes('P1003')) {
+      return NextResponse.json(
+        { error: 'Base de données non disponible. Veuillez réessayer dans quelques secondes.' },
+        { status: 503 }
+      )
+    }
+
+    return NextResponse.json({ error: 'Erreur serveur. Veuillez réessayer.' }, { status: 500 })
   }
 }
